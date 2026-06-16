@@ -1,6 +1,8 @@
 package com.StackTrace.User_Service.Service;
 
 import com.StackTrace.User_Service.Repository.UserRepository;
+import com.StackTrace.User_Service.dto.LoginRequest;
+import com.StackTrace.User_Service.dto.LoginResponse;
 import com.StackTrace.User_Service.dto.RegisterRequest;
 import com.StackTrace.User_Service.dto.RegisterResponse;
 import com.StackTrace.User_Service.model.User;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class UserService {
     private final BCryptPasswordEncoder bp;
     private final UserRepository up;
+    private final JwtService jwtService;
 
     public RegisterResponse register(RegisterRequest rq){
         if(up.existsByEmail(rq.getEmail())){
@@ -27,5 +30,24 @@ public class UserService {
         rp.setEmail(ret.getEmail());
         rp.setEmail(ret.getName());
         return rp;
+    }
+
+    public LoginResponse login(LoginRequest l) {
+        if (!up.existsByEmail(l.getEmail())) {
+            throw new RuntimeException("Invalid Credentials");
+        }
+        User user = up.findByEmail(l.getEmail()).get();
+        if (!bp.matches(l.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid Credentials");
+        }
+        String token = jwtService.generateToken(l.getEmail());
+        return LoginResponse.builder()
+                .token(token)
+                .id(user.getId())
+                .name(user.getName())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .build();
+
     }
 }
