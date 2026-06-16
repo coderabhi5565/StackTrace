@@ -1,14 +1,16 @@
 package com.StackTrace.User_Service.Service;
 
 import com.StackTrace.User_Service.Repository.UserRepository;
-import com.StackTrace.User_Service.dto.LoginRequest;
-import com.StackTrace.User_Service.dto.LoginResponse;
-import com.StackTrace.User_Service.dto.RegisterRequest;
-import com.StackTrace.User_Service.dto.RegisterResponse;
+import com.StackTrace.User_Service.dto.*;
 import com.StackTrace.User_Service.model.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.nio.file.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -50,4 +52,56 @@ public class UserService {
                 .build();
 
     }
+
+    public UserProfileResponse getUser(Long id) {
+        User u = up.findById(id).get();
+        if(u==null){
+            throw new RuntimeException("User Does Not Exist");
+        }
+        UserProfileResponse ret = UserProfileResponse.builder()
+                .id(id)
+                .name(u.getName())
+                .username(u.getUsername())
+                .bio(u.getBio())
+                .avatarUrl(u.getAvatarUrl())
+                .points(u.getPoints())
+                .location(u.getLocation())
+                .build();
+        return ret;
+    }
+
+    public UserProfileResponse update(UpdateProfileRequest ur) {
+        String email = getCurrentUserEmail();
+        User u = up.findByEmail(email).get();
+        if(ur.getBio()!=null){
+            u.setBio(ur.getBio());
+        }
+        if(ur.getAvatarUrl()!=null){
+            u.setAvatarUrl(ur.getAvatarUrl());
+        }
+        if(ur.getLocation()!=null){
+            u.setLocation(ur.getLocation());
+        }
+        up.save(u);
+        UserProfileResponse ret = UserProfileResponse.builder()
+                .id(u.getId())
+                .name(u.getName())
+                .username(u.getUsername())
+                .bio(u.getBio())
+                .avatarUrl(u.getAvatarUrl())
+                .points(u.getPoints())
+                .location(u.getLocation())
+                .build();
+        return ret;
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        return (String) authentication.getPrincipal();
+    }
+
 }
