@@ -3,15 +3,16 @@ package com.StackTrace.User_Service.Service;
 import com.StackTrace.User_Service.Repository.FollowRepository;
 import com.StackTrace.User_Service.Repository.UserRepository;
 import com.StackTrace.User_Service.dto.*;
+import com.StackTrace.User_Service.model.Follow;
 import com.StackTrace.User_Service.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.AccessDeniedException;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -121,5 +122,109 @@ public class UserService {
                 .location(u.getLocation())
                 .build();
         return ret;
+    }
+
+    public ApiResponse followUser(Long targetId) {
+
+        String email = getCurrentUserEmail();
+
+        User currentUser = up.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        User targetUser = up.findById(targetId)
+                .orElseThrow(() -> new RuntimeException("Target user not found"));
+
+        if (currentUser.getId().equals(targetUser.getId())) {
+            throw new RuntimeException("You cannot follow yourself");
+        }
+
+        if (fp.existsByFollowerIdAndFollowingId(
+                currentUser.getId(),
+                targetUser.getId())) {
+
+            throw new RuntimeException("Already following this user");
+        }
+
+        Follow follow = Follow.builder()
+                .followerId(currentUser.getId())
+                .followingId(targetUser.getId())
+                .build();
+
+        fp.save(follow);
+
+        return ApiResponse.builder()
+                .success(true)
+                .message("User followed successfully")
+                .build();
+    }
+
+    public ApiResponse unfollowUser(Long targetId) {
+
+        String email = getCurrentUserEmail();
+
+        User currentUser = up.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+
+        up.findById(targetId)
+                .orElseThrow(() -> new RuntimeException("Target user not found"));
+
+        Follow follow = fp.findByFollowerIdAndFollowingId(
+                        currentUser.getId(),
+                        targetId)
+                .orElseThrow(() ->
+                        new RuntimeException("Follow relationship not found"));
+
+        fp.delete(follow);
+
+        return ApiResponse.builder()
+                .success(true)
+                .message("User unfollowed successfully")
+                .build();
+    }
+
+    public List<UserSummaryResponse> getFollowers(Long id) {
+
+        up.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Follow> follows = fp.findByFollowingId(id);
+
+        List<Long> followerIds = follows.stream()
+                .map(Follow::getFollowerId)
+                .toList();
+
+        List<User> users = up.findByIdIn(followerIds);
+
+        return users.stream()
+                .map(user -> UserSummaryResponse.builder()
+                        .id(user.getId())
+                        .name(user.getName())
+                        .username(user.getUsername())
+                        .avatarUrl(user.getAvatarUrl())
+                        .build())
+                .toList();
+    }
+
+    public List<UserSummaryResponse> getFollowing(Long id) {
+
+        up.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Follow> follows = fp.findByFollowerId(id);
+
+        List<Long> followingIds = follows.stream()
+                .map(Follow::getFollowingId)
+                .toList();
+
+        List<User> users = up.findByIdIn(followingIds);
+
+        return users.stream()
+                .map(user -> UserSummaryResponse.builder()
+                        .id(user.getId())
+                        .name(user.getName())
+                        .username(user.getUsername())
+                        .avatarUrl(user.getAvatarUrl())
+                        .build())
+                .toList();
     }
 }

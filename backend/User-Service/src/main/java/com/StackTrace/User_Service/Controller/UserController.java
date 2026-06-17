@@ -1,12 +1,12 @@
 package com.StackTrace.User_Service.Controller;
 
 import com.StackTrace.User_Service.Service.UserService;
-import com.StackTrace.User_Service.dto.UpdatePointsRequest;
-import com.StackTrace.User_Service.dto.UpdateProfileRequest;
-import com.StackTrace.User_Service.dto.UserProfileResponse;
+import com.StackTrace.User_Service.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -34,5 +34,39 @@ public class UserController {
         return ResponseEntity.ok(us.updatepoints(u));
         }
 
+    @PostMapping("/{targetId}/follow")
+    public ResponseEntity<ApiResponse> followUser(
+            @PathVariable Long targetId) {
 
+        return ResponseEntity.ok(
+                us.followUser(targetId)
+        );
+    }
+
+    @DeleteMapping("/{targetId}/follow")
+    public ResponseEntity<ApiResponse> unfollowUser(
+            @PathVariable Long targetId) {
+
+        return ResponseEntity.ok(
+                us.unfollowUser(targetId)
+        );
+    }
+
+    @GetMapping("/{id}/followers")
+    public ResponseEntity<List<UserSummaryResponse>> getFollowers(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                us.getFollowers(id)
+        );
+    }
+
+    @GetMapping("/{id}/following")
+    public ResponseEntity<List<UserSummaryResponse>> getFollowing(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                us.getFollowing(id)
+        );
+    }
 }
