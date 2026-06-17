@@ -1,5 +1,6 @@
 package com.StackTrace.User_Service.Service;
 
+import com.StackTrace.User_Service.Repository.FollowRepository;
 import com.StackTrace.User_Service.Repository.UserRepository;
 import com.StackTrace.User_Service.dto.*;
 import com.StackTrace.User_Service.model.User;
@@ -18,19 +19,20 @@ public class UserService {
     private final BCryptPasswordEncoder bp;
     private final UserRepository up;
     private final JwtService jwtService;
+    private final FollowRepository fp;
 
     public RegisterResponse register(RegisterRequest rq){
         if(up.existsByEmail(rq.getEmail())){
             throw new RuntimeException("Email Already Registered");
         }
         String hp = bp.encode(rq.getPassword());
-        User u = User.builder().name(rq.getName()).email(rq.getEmail()).username(rq.getUsername()).password(rq.getPassword()).build();
+        User u = User.builder().name(rq.getName()).email(rq.getEmail()).username(rq.getUsername()).password(bp.encode(rq.getPassword())).build();
         User ret = up.save(u);
         RegisterResponse rp = new RegisterResponse();
         rp.setId(ret.getId());
         rp.setName(ret.getName());
         rp.setEmail(ret.getEmail());
-        rp.setEmail(ret.getName());
+        rp.setUsername(ret.getUsername());
         return rp;
     }
 
@@ -104,4 +106,20 @@ public class UserService {
         return (String) authentication.getPrincipal();
     }
 
+    public UserProfileResponse updatepoints(UpdatePointsRequest ups) {
+        String email = getCurrentUserEmail();
+        User u = up.findByEmail(email).get();
+        u.setPoints(u.getPoints() + ups.getPoints());
+        up.save(u);
+        UserProfileResponse ret = UserProfileResponse.builder()
+                .id(u.getId())
+                .name(u.getName())
+                .username(u.getUsername())
+                .bio(u.getBio())
+                .avatarUrl(u.getAvatarUrl())
+                .points(u.getPoints())
+                .location(u.getLocation())
+                .build();
+        return ret;
+    }
 }

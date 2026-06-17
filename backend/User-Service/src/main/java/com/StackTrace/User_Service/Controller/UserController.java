@@ -1,6 +1,7 @@
 package com.StackTrace.User_Service.Controller;
 
 import com.StackTrace.User_Service.Service.UserService;
+import com.StackTrace.User_Service.dto.UpdatePointsRequest;
 import com.StackTrace.User_Service.dto.UpdateProfileRequest;
 import com.StackTrace.User_Service.dto.UserProfileResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,4 +28,11 @@ public class UserController {
 
             return ResponseEntity.ok(response);
         }
+
+        @PutMapping("/points")
+        public ResponseEntity<UserProfileResponse> updatepoints(@RequestBody UpdatePointsRequest u){
+        return ResponseEntity.ok(us.updatepoints(u));
+        }
+
+
 }
