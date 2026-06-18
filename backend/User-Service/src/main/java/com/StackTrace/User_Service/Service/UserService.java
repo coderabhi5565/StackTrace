@@ -10,8 +10,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @Service
@@ -125,9 +123,7 @@ public class UserService {
     }
 
     public ApiResponse followUser(Long targetId) {
-
         String email = getCurrentUserEmail();
-
         User currentUser = up.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
 
@@ -159,9 +155,7 @@ public class UserService {
     }
 
     public ApiResponse unfollowUser(Long targetId) {
-
         String email = getCurrentUserEmail();
-
         User currentUser = up.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
 
@@ -183,7 +177,6 @@ public class UserService {
     }
 
     public List<UserSummaryResponse> getFollowers(Long id) {
-
         up.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -205,8 +198,8 @@ public class UserService {
                 .toList();
     }
 
-    public List<UserSummaryResponse> getFollowing(Long id) {
 
+    public List<UserSummaryResponse> getFollowing(Long id){
         up.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
