@@ -3,6 +3,7 @@ package com.StackTrace.User_Service.Service;
 import com.StackTrace.User_Service.Repository.FollowRepository;
 import com.StackTrace.User_Service.Repository.UserRepository;
 import com.StackTrace.User_Service.dto.*;
+import com.StackTrace.User_Service.exception.*;
 import com.StackTrace.User_Service.model.Follow;
 import com.StackTrace.User_Service.model.User;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.rmi.AlreadyBoundException;
 import java.util.List;
 
 @Service
@@ -22,7 +25,7 @@ public class UserService {
 
     public RegisterResponse register(RegisterRequest rq){
         if(up.existsByEmail(rq.getEmail())){
-            throw new RuntimeException("Email Already Registered");
+            throw new EmailAlreadyExistsException("Email Already Registered");
         }
         String hp = bp.encode(rq.getPassword());
         User u = User.builder().name(rq.getName()).email(rq.getEmail()).username(rq.getUsername()).password(bp.encode(rq.getPassword())).build();
@@ -57,7 +60,7 @@ public class UserService {
     public UserProfileResponse getUser(Long id) {
         User u = up.findById(id).get();
         if(u==null){
-            throw new RuntimeException("User Does Not Exist");
+            throw new UserNotFoundException("User Does Not Exist");
         }
         UserProfileResponse ret = UserProfileResponse.builder()
                 .id(id)
@@ -125,20 +128,20 @@ public class UserService {
     public ApiResponse followUser(Long targetId) {
         String email = getCurrentUserEmail();
         User currentUser = up.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
+                .orElseThrow(() -> new UserNotFoundException("Current user not found"));
 
         User targetUser = up.findById(targetId)
-                .orElseThrow(() -> new RuntimeException("Target user not found"));
+                .orElseThrow(() -> new UserNotFoundException("Target user not found"));
 
         if (currentUser.getId().equals(targetUser.getId())) {
-            throw new RuntimeException("You cannot follow yourself");
+            throw new SelfFollowException("You cannot follow yourself");
         }
 
         if (fp.existsByFollowerIdAndFollowingId(
                 currentUser.getId(),
                 targetUser.getId())) {
 
-            throw new RuntimeException("Already following this user");
+            throw new AlreadyFollowingException("Already following this user");
         }
 
         Follow follow = Follow.builder()
@@ -157,16 +160,16 @@ public class UserService {
     public ApiResponse unfollowUser(Long targetId) {
         String email = getCurrentUserEmail();
         User currentUser = up.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
+                .orElseThrow(() -> new UserNotFoundException("Current user not found"));
 
         up.findById(targetId)
-                .orElseThrow(() -> new RuntimeException("Target user not found"));
+                .orElseThrow(() -> new UserNotFoundException("Target user not found"));
 
         Follow follow = fp.findByFollowerIdAndFollowingId(
                         currentUser.getId(),
                         targetId)
                 .orElseThrow(() ->
-                        new RuntimeException("Follow relationship not found"));
+                        new BusinessException("Follow relationship not found"));
 
         fp.delete(follow);
 
@@ -178,7 +181,7 @@ public class UserService {
 
     public List<UserSummaryResponse> getFollowers(Long id) {
         up.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         List<Follow> follows = fp.findByFollowingId(id);
 
@@ -201,7 +204,7 @@ public class UserService {
 
     public List<UserSummaryResponse> getFollowing(Long id){
         up.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         List<Follow> follows = fp.findByFollowerId(id);
 
