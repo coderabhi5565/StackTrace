@@ -2,6 +2,7 @@ package com.StackTrace.User_Service.Controller;
 
 import com.StackTrace.User_Service.Service.UserService;
 import com.StackTrace.User_Service.dto.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +31,7 @@ public class UserController {
         }
 
         @PutMapping("/points")
-        public ResponseEntity<UserProfileResponse> updatepoints(@RequestBody UpdatePointsRequest u){
+        public ResponseEntity<UserProfileResponse> updatepoints(@Valid @RequestBody UpdatePointsRequest u){
         return ResponseEntity.ok(us.updatepoints(u));
         }
 

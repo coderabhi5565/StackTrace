@@ -5,6 +5,7 @@ import com.StackTrace.User_Service.dto.LoginRequest;
 import com.StackTrace.User_Service.dto.LoginResponse;
 import com.StackTrace.User_Service.dto.RegisterRequest;
 import com.StackTrace.User_Service.dto.RegisterResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,12 +21,12 @@ public class AuthController {
     private final UserService us;
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest r) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest r) {
         return ResponseEntity.ok(us.register(r));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest l) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest l) {
         return ResponseEntity.ok(us.login(l));
     }
 }
