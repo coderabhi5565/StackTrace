@@ -69,4 +69,13 @@ public class UserController {
                 us.getFollowing(id)
         );
     }
+
+    @GetMapping("/leaderboard")
+    public ResponseEntity<List<LeaderboardResponse>>
+    getLeaderboard() {
+
+        return ResponseEntity.ok(
+                us.getLeaderboard()
+        );
+    }
 }

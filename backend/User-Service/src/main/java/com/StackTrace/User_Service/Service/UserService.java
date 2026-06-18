@@ -13,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.rmi.AlreadyBoundException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -222,5 +223,30 @@ public class UserService {
                         .avatarUrl(user.getAvatarUrl())
                         .build())
                 .toList();
+    }
+
+    public List<LeaderboardResponse> getLeaderboard() {
+
+        List<User> users =
+                up.findTop10ByOrderByPointsDesc();
+
+        List<LeaderboardResponse> leaderboard =
+                new ArrayList<>();
+
+        int rank = 1;
+
+        for(User user : users) {
+
+            leaderboard.add(
+                    LeaderboardResponse.builder()
+                            .rank(rank++)
+                            .username(user.getUsername())
+                            .name(user.getName())
+                            .points(user.getPoints())
+                            .build()
+            );
+        }
+
+        return leaderboard;
     }
 }
