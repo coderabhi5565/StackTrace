@@ -1,12 +1,15 @@
 package com.StackTrace.User_Service.Service;
 
 import com.StackTrace.User_Service.Repository.FollowRepository;
+import com.StackTrace.User_Service.Repository.SkillRepository;
 import com.StackTrace.User_Service.Repository.UserRepository;
 import com.StackTrace.User_Service.dto.*;
 import com.StackTrace.User_Service.exception.*;
 import com.StackTrace.User_Service.model.Follow;
+import com.StackTrace.User_Service.model.Skill;
 import com.StackTrace.User_Service.model.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,6 +26,7 @@ public class UserService {
     private final UserRepository up;
     private final JwtService jwtService;
     private final FollowRepository fp;
+    private final SkillRepository sp;
 
     public RegisterResponse register(RegisterRequest rq){
         if(up.existsByEmail(rq.getEmail())){
@@ -248,5 +252,80 @@ public class UserService {
         }
 
         return leaderboard;
+    }
+
+    public SkillResponse addSkill(SkillRequest request) {
+        String email = getCurrentUserEmail();
+        User user = up.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User not found"));
+
+        if(sp.existsByUserIdAndSkillName(
+                user.getId(),
+                request.getSkillName())) {
+
+            throw new SkillAlreadyExistsException(
+                    "Skill already exists");
+        }
+
+        Skill skill = Skill.builder()
+                .userId(user.getId())
+                .skillName(request.getSkillName())
+                .build();
+
+        Skill savedSkill = sp.save(skill);
+
+        return SkillResponse.builder()
+                .id(savedSkill.getId())
+                .skillName(savedSkill.getSkillName())
+                .build();
+    }
+
+    public List<SkillResponse> getSkills(Long userId) {
+        up.findById(userId)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User not found"));
+
+        List<Skill> skills =
+                sp.findByUserId(userId);
+
+        return skills.stream()
+                .map(skill ->
+                        SkillResponse.builder()
+                                .id(skill.getId())
+                                .skillName(skill.getSkillName())
+                                .build())
+                .toList();
+    }
+
+    public ApiResponse deleteSkill(Long skillId) {
+
+        String email = getCurrentUserEmail();
+
+        User currentUser = up.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User not found"));
+
+        Skill skill = sp.findById(skillId)
+                .orElseThrow(() ->
+                        new SkillNotFoundException(
+                                "Skill not found"));
+
+        if (!skill.getUserId()
+                .equals(currentUser.getId())) {
+
+            throw new AccessDeniedException(
+                    "You cannot delete another user's skill");
+        }
+
+        sp.delete(skill);
+
+        return ApiResponse.builder()
+                .success(true)
+                .message("Skill deleted successfully")
+                .build();
     }
 }

@@ -79,4 +79,32 @@ public class UserController {
                 us.getLeaderboard()
         );
     }
+
+    @PostMapping("/me/skills")
+    public ResponseEntity<SkillResponse> addSkill(
+            @Valid
+            @RequestBody SkillRequest request) {
+
+        return ResponseEntity.ok(
+                us.addSkill(request)
+        );
+    }
+
+    @GetMapping("/{id}/skills")
+    public ResponseEntity<List<SkillResponse>>
+    getSkills(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                us.getSkills(id)
+        );
+    }
+
+    @DeleteMapping("/me/skills/{skillId}")
+    public ResponseEntity<ApiResponse>
+    deleteSkill(@PathVariable Long skillId) {
+
+        return ResponseEntity.ok(
+                us.deleteSkill(skillId)
+        );
+    }
 }
