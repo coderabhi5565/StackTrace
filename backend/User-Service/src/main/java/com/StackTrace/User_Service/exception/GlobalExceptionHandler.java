@@ -158,4 +158,42 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.FORBIDDEN)
                 .body(response);
     }
+
+   @ExceptionHandler(
+            BadgeNotFoundException.class
+    )
+    public ResponseEntity<ErrorResponse>
+    handleBadgeNotFound(
+                    BadgeNotFoundException ex
+            ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(
+                        ErrorResponse.builder()
+                                .timestamp(LocalDateTime.now())
+                                .status(HttpStatus.NOT_FOUND.value())
+                                .message(ex.getMessage())
+                                .build()
+                );
+    }
+
+    @ExceptionHandler(
+            BadgeAlreadyEarnedException.class
+    )
+    public ResponseEntity<ErrorResponse>
+    handleBadgeAlreadyEarned(
+            BadgeAlreadyEarnedException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        ErrorResponse.builder()
+                                .timestamp(LocalDateTime.now())
+                                .status(HttpStatus.CONFLICT.value())
+                                .message(ex.getMessage())
+                                .build()
+                );
+    }
 }

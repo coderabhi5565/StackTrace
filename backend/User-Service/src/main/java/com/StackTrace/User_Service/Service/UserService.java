@@ -5,17 +5,16 @@ import com.StackTrace.User_Service.Repository.SkillRepository;
 import com.StackTrace.User_Service.Repository.UserRepository;
 import com.StackTrace.User_Service.dto.*;
 import com.StackTrace.User_Service.exception.*;
-import com.StackTrace.User_Service.model.Follow;
-import com.StackTrace.User_Service.model.Skill;
-import com.StackTrace.User_Service.model.User;
+import com.StackTrace.User_Service.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.rmi.AlreadyBoundException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
