@@ -1,6 +1,8 @@
 package com.StackTrace.User_Service.Repository;
 
 import com.StackTrace.User_Service.model.Follow;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -18,9 +20,12 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
             Long followingId
     );
 
-    List<Follow> findByFollowerId(Long followerId);
+    Page<Follow> findByFollowerId(Long followerId, Pageable pageable);
 
-    List<Follow> findByFollowingId(Long followingId);
+    Page<Follow> findByFollowingId(
+            Long id,
+            Pageable pageable
+    );
 
     void deleteByFollowerIdAndFollowingId(
             Long followerId,

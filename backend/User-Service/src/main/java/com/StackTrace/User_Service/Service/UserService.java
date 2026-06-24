@@ -7,14 +7,14 @@ import com.StackTrace.User_Service.dto.*;
 import com.StackTrace.User_Service.exception.*;
 import com.StackTrace.User_Service.model.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -183,13 +183,14 @@ public class UserService {
                 .build();
     }
 
-    public List<UserSummaryResponse> getFollowers(Long id) {
+    public List<UserSummaryResponse> getFollowers(Long id, int page, int size) {
         up.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Pageable pageable = PageRequest.of(page,size);
+        Page<Follow> follows = fp.findByFollowingId(id,pageable);
 
-        List<Follow> follows = fp.findByFollowingId(id);
-
-        List<Long> followerIds = follows.stream()
+        List<Long> followerIds = follows.getContent()
+                .stream()
                 .map(Follow::getFollowerId)
                 .toList();
 
@@ -197,6 +198,7 @@ public class UserService {
 
         return users.stream()
                 .map(user -> UserSummaryResponse.builder()
+
                         .id(user.getId())
                         .name(user.getName())
                         .username(user.getUsername())
@@ -206,13 +208,13 @@ public class UserService {
     }
 
 
-    public List<UserSummaryResponse> getFollowing(Long id){
+    public List<UserSummaryResponse> getFollowing(Long id,int page, int size){
         up.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        List<Follow> follows = fp.findByFollowerId(id);
+        Page<Follow> follows = fp.findByFollowerId(id,PageRequest.of(page,size));
 
-        List<Long> followingIds = follows.stream()
+        List<Long> followingIds = follows.getContent().stream()
                 .map(Follow::getFollowingId)
                 .toList();
 

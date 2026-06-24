@@ -55,19 +55,19 @@ public class UserController {
 
     @GetMapping("/{id}/followers")
     public ResponseEntity<List<UserSummaryResponse>> getFollowers(
-            @PathVariable Long id) {
+            @PathVariable Long id, @RequestParam(defaultValue = "0") int page,@RequestParam(defaultValue = "10") int size) {
 
         return ResponseEntity.ok(
-                us.getFollowers(id)
+                us.getFollowers(id,page,size)
         );
     }
 
     @GetMapping("/{id}/following")
     public ResponseEntity<List<UserSummaryResponse>> getFollowing(
-            @PathVariable Long id) {
+            @PathVariable Long id, @RequestParam(defaultValue = 0)int page, @RequestParam(defaultValue = 0) int size) {
 
         return ResponseEntity.ok(
-                us.getFollowing(id)
+                us.getFollowing(id,size,page)
         );
     }
 
