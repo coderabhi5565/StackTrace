@@ -64,7 +64,7 @@ public class UserController {
 
     @GetMapping("/{id}/following")
     public ResponseEntity<List<UserSummaryResponse>> getFollowing(
-            @PathVariable Long id, @RequestParam(defaultValue = 0)int page, @RequestParam(defaultValue = 0) int size) {
+            @PathVariable Long id, @RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "10") int size) {
 
         return ResponseEntity.ok(
                 us.getFollowing(id,size,page)
@@ -72,13 +72,13 @@ public class UserController {
     }
 
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<LeaderboardResponse>>
-    getLeaderboard() {
+    public ResponseEntity<PagedResponse<LeaderboardResponse>>
+    getLeaderboard(@RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "10") int size) {
 
         return ResponseEntity.ok(
-                us.getLeaderboard()
-        );
+                us.getLeaderboard(page,size));
     }
+
 
     @PostMapping("/me/skills")
     public ResponseEntity<SkillResponse> addSkill(
@@ -105,6 +105,22 @@ public class UserController {
 
         return ResponseEntity.ok(
                 us.deleteSkill(skillId)
+        );
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<PagedResponse<UserSummaryResponse>>
+    searchUsers(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0")int page,
+            @RequestParam(defaultValue = "10")int size
+    ) {
+        return ResponseEntity.ok(
+                us.searchUsers(
+                        keyword,
+                        page,
+                        size
+                )
         );
     }
 }

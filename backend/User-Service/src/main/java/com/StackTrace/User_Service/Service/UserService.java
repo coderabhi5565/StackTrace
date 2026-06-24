@@ -230,17 +230,21 @@ public class UserService {
                 .toList();
     }
 
-    public List<LeaderboardResponse> getLeaderboard() {
+    public PagedResponse<LeaderboardResponse>
+    getLeaderboard(int page, int size) {
 
-        List<User> users =
-                up.findTop10ByOrderByPointsDesc();
+        Pageable pageable =
+                PageRequest.of(page, size);
+
+        Page<User> users =
+                up.findAllByOrderByPointsDesc(pageable);
+
+        int rank = page * size + 1;
 
         List<LeaderboardResponse> leaderboard =
                 new ArrayList<>();
 
-        int rank = 1;
-
-        for(User user : users) {
+        for(User user : users.getContent()) {
 
             leaderboard.add(
                     LeaderboardResponse.builder()
@@ -252,7 +256,14 @@ public class UserService {
             );
         }
 
-        return leaderboard;
+        return PagedResponse.<LeaderboardResponse>builder()
+                .content(leaderboard)
+                .page(users.getNumber())
+                .size(users.getSize())
+                .totalElements(users.getTotalElements())
+                .totalPages(users.getTotalPages())
+                .last(users.isLast())
+                .build();
     }
 
     public SkillResponse addSkill(SkillRequest request) {
@@ -327,6 +338,44 @@ public class UserService {
         return ApiResponse.builder()
                 .success(true)
                 .message("Skill deleted successfully")
+                .build();
+    }
+    public PagedResponse<UserSummaryResponse> searchUsers(
+            String keyword,
+            int page,
+            int size
+    ) {
+
+        Pageable pageable =
+                PageRequest.of(page, size);
+
+        Page<User> users =
+                up.findByUsernameContainingIgnoreCaseOrNameContainingIgnoreCase(
+                        keyword,
+                        keyword,
+                        pageable
+                );
+
+        List<UserSummaryResponse> content =
+                users.getContent()
+                        .stream()
+                        .map(user ->
+                                UserSummaryResponse.builder()
+                                        .id(user.getId())
+                                        .name(user.getName())
+                                        .username(user.getUsername())
+                                        .avatarUrl(user.getAvatarUrl())
+                                        .build()
+                        )
+                        .toList();
+
+        return PagedResponse.<UserSummaryResponse>builder()
+                .content(content)
+                .page(users.getNumber())
+                .size(users.getSize())
+                .totalElements(users.getTotalElements())
+                .totalPages(users.getTotalPages())
+                .last(users.isLast())
                 .build();
     }
 }

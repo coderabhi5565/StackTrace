@@ -1,5 +1,7 @@
 package com.StackTrace.User_Service.Repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import com.StackTrace.User_Service.model.User;
 
@@ -11,5 +13,10 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     boolean existsByEmail(String email);
     List<User> findByIdIn(List<Long> ids);
-    List<User> findTop10ByOrderByPointsDesc();
+    Page<User>
+    findAllByOrderByPointsDesc(
+            Pageable pageable
+    );
+
+    Page<User> findByUsernameContainingIgnoreCaseOrNameContainingIgnoreCase(String keyword, String keyword1, Pageable pageable);
 }
