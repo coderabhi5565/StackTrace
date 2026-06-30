@@ -1,5 +1,5 @@
 package com.stacktrace.post_service.entity;
-import com.stacktrace.postservice.entity.BaseEntity;
+
 import com.stacktrace.post_service.enums.PostStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,13 +8,18 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
 @Table(
         name = "posts",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_post_slug",
+                        columnNames = "slug"
+                )
+        },
         indexes = {
                 @Index(name = "idx_post_author_id", columnList = "authorId"),
                 @Index(name = "idx_post_status", columnList = "status"),
@@ -27,10 +32,22 @@ import java.util.Set;
 @AllArgsConstructor
 public class Post extends BaseEntity {
 
+    @Id
+    @SequenceGenerator(
+            name = "post_sequence",
+            sequenceName = "post_sequence",
+            allocationSize = 50
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "post_sequence"
+    )
+    private Long id;
+
     @Column(nullable = false, length = 250)
     private String title;
 
-    @Column(nullable = false, unique = true, length = 300)
+    @Column(nullable = false, length = 300)
     private String slug;
 
     @Column(nullable = false, columnDefinition = "TEXT")

@@ -1,11 +1,8 @@
-package com.stacktrace.postservice.entity;
+package com.stacktrace.post_service.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.SequenceGenerator;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
@@ -20,18 +17,11 @@ import java.time.Instant;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
 
-    @Id
-    @SequenceGenerator(
-            name = "base_sequence",
-            sequenceName = "base",
-            allocationSize = 1
-    )
-    @GeneratedValue(strategy = GenerationType.SEQUENCE,generator = "base_sequence")
-    private Long id;
-
     @CreatedDate
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
+    @Column(nullable = false)
     private Instant updatedAt;
 }
