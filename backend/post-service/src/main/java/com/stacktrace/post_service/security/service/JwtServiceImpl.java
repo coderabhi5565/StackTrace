@@ -35,7 +35,7 @@ public class JwtServiceImpl implements JwtService {
         try {
             extractAllClaims(token);
             return true;
-        } catch (JwtException | IllegalArgumentException ex) {
+        } catch (JwtException | IllegalArgumentException ex){
             return false;
         }
     }
@@ -53,7 +53,7 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String extractEmail(String token) {
-        return "";
+        return extractAllClaims(token).getSubject();
     }
 
 }

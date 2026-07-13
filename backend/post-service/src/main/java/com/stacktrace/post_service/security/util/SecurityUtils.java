@@ -12,7 +12,7 @@ public final class SecurityUtils {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalStateException("No authenticated user found.");
         }
 
