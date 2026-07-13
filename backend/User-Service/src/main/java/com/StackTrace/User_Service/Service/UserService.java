@@ -50,7 +50,7 @@ public class UserService {
         if (!bp.matches(l.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid Credentials");
         }
-        String token = jwtService.generateToken(l.getEmail());
+        String token = jwtService.generateToken(user.getId(),l.getEmail());
         return LoginResponse.builder()
                 .token(token)
                 .id(user.getId())

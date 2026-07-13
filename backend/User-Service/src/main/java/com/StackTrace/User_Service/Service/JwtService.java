@@ -21,11 +21,12 @@ public class JwtService {
         return Keys.hmacShaKeyFor(jwtSecretKey.getBytes());
     }
 
-    public String generateToken(String email){
+    public String generateToken(Long userId, String email) {
         return Jwts.builder()
                 .subject(email)
+                .claim("userId", userId)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis()+expiration))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
                 .compact();
     }
