@@ -5,11 +5,14 @@ import com.stacktrace.post_service.dto.response.PostResponse;
 import com.stacktrace.post_service.entity.Post;
 import com.stacktrace.post_service.entity.Tag;
 import com.stacktrace.post_service.enums.PostStatus;
+import com.stacktrace.post_service.exception.PostNotFoundException;
 import com.stacktrace.post_service.repository.PostRepository;
 import com.stacktrace.post_service.repository.TagRepository;
 import com.stacktrace.post_service.security.util.SecurityUtils;
 import com.stacktrace.post_service.service.PostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,24 +54,7 @@ public class PostServiceImpl implements PostService {
 
         post.setTags(new HashSet<>(tags));
         Post savedPost = postRepository.save(post);
-        Set<String> tagNames = savedPost.getTags()
-                .stream()
-                .map(Tag::getName)
-                .collect(Collectors.toSet());
-        return PostResponse.builder()
-                .id(savedPost.getId())
-                .title(savedPost.getTitle())
-                .slug(savedPost.getSlug())
-                .content(savedPost.getContent())
-                .coverImageUrl(savedPost.getCoverImageUrl())
-                .authorId(savedPost.getAuthorId())
-                .status(savedPost.getStatus())
-                .tags(tagNames)
-                .scheduledAt(savedPost.getScheduledAt())
-                .publishedAt(savedPost.getPublishedAt())
-                .createdAt(savedPost.getCreatedAt())
-                .updatedAt(savedPost.getUpdatedAt())
-                .build();
+        return mapToResponse(savedPost);
     }
 
 
@@ -97,5 +83,52 @@ public class PostServiceImpl implements PostService {
                 .replaceAll("[^a-z0-9\\s-]", "")
                 .replaceAll("\\s+", "-")
                 .replaceAll("-+", "-");
+    }
+
+    @Override
+    public PostResponse getPostBySlug(String slug) {
+
+        Post post = postRepository
+                .findBySlug(slug)
+                .orElseThrow(() ->
+                        new PostNotFoundException("Post not found."));
+
+        return mapToResponse(post);
+
+    }
+
+    private PostResponse mapToResponse(Post post) {
+
+        Set<String> tagNames = post.getTags()
+                .stream()
+                .map(Tag::getName)
+                .collect(Collectors.toSet());
+
+        return PostResponse.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .slug(post.getSlug())
+                .content(post.getContent())
+                .coverImageUrl(post.getCoverImageUrl())
+                .authorId(post.getAuthorId())
+                .status(post.getStatus())
+                .tags(tagNames)
+                .scheduledAt(post.getScheduledAt())
+                .publishedAt(post.getPublishedAt())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    public Page<PostResponse> getAllPublishedPosts(Pageable pageable) {
+
+        Page<Post> posts = postRepository
+                .findByStatusAndDeletedAtIsNull(
+                        PostStatus.PUBLISHED,
+                        pageable
+                );
+
+        return posts.map(this::mapToResponse);
     }
 }

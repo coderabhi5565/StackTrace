@@ -5,12 +5,11 @@ import com.stacktrace.post_service.dto.response.PostResponse;
 import com.stacktrace.post_service.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -28,5 +27,26 @@ public class PostController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @GetMapping("/{slug}")
+    public ResponseEntity<PostResponse> getPostBySlug(
+            @PathVariable String slug
+    ) {
+
+        PostResponse response = postService.getPostBySlug(slug);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<PostResponse>> getAllPublishedPosts(
+            Pageable pageable
+    ) {
+
+        Page<PostResponse> response =
+                postService.getAllPublishedPosts(pageable);
+
+        return ResponseEntity.ok(response);
     }
 }
