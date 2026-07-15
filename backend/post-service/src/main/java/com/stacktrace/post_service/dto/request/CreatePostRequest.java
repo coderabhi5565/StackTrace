@@ -1,6 +1,7 @@
 package com.stacktrace.post_service.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,6 +23,7 @@ public class CreatePostRequest {
     @Size(max = 500, message = "Cover image URL cannot exceed 500 characters")
     private String coverImageUrl;
 
+    @NotEmpty(message = "At least one tag is required")
     private Set<Long> tagIds = new HashSet<>();
 
 }
