@@ -76,5 +76,6 @@ public class Post extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     private Set<Tag> tags = new LinkedHashSet<>();
-
+    @Column(name = "scheduled_publish_at")
+    private Instant scheduledPublishAt;
 }

@@ -18,4 +18,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             PostStatus status,
             Pageable pageable
     );
+
+    Page<Post> findByAuthorIdAndDeletedAtIsNull(
+            Long authorId,
+            Pageable pageable
+    );
 }

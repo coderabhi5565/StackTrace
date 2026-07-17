@@ -3,14 +3,18 @@ package com.stacktrace.post_service.controller;
 import com.stacktrace.post_service.dto.request.CreatePostRequest;
 import com.stacktrace.post_service.dto.request.UpdatePostRequest;
 import com.stacktrace.post_service.dto.response.PostResponse;
+import com.stacktrace.post_service.dto.response.UploadResponse;
 import com.stacktrace.post_service.service.PostService;
+import com.stacktrace.post_service.service.UploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -18,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class PostController {
 
     private final PostService postService;
-
+    private final UploadService uploadService;
     @PostMapping
     public ResponseEntity<PostResponse> createPost(
          @Valid @RequestBody CreatePostRequest request
@@ -70,4 +74,24 @@ public class PostController {
         postService.deletePost(postId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{postId}/publish")
+    public ResponseEntity<Void> publishPost(
+            @PathVariable Long postId
+    ) {
+        postService.publishPost(postId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Page<PostResponse>> getMyPosts(
+            Pageable pageable
+    ) {
+
+        return ResponseEntity.ok(
+                postService.getMyPosts(pageable)
+        );
+    }
+
+
 }

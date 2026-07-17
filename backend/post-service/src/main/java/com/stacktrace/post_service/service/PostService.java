@@ -18,4 +18,7 @@ public interface PostService {
             UpdatePostRequest request
     );
     void deletePost(Long postId);
+    void publishPost(Long postId);
+
+    Page<PostResponse> getMyPosts(Pageable pageable);
 }

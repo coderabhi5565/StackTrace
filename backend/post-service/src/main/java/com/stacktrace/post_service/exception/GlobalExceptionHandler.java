@@ -63,5 +63,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
+    @ExceptionHandler(ImageUploadFailedException.class)
+    public ResponseEntity<ErrorResponse> handleImageUploadFailedException(
+            ImageUploadFailedException ex
+    ) {
+
+        ErrorResponse error = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.badRequest().body(error);
+    }
 
 }

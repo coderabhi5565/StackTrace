@@ -6,6 +6,7 @@ import com.stacktrace.post_service.dto.response.PostResponse;
 import com.stacktrace.post_service.entity.Post;
 import com.stacktrace.post_service.entity.Tag;
 import com.stacktrace.post_service.enums.PostStatus;
+import com.stacktrace.post_service.exception.PostAlreadyPublishedException;
 import com.stacktrace.post_service.exception.PostNotFoundException;
 import com.stacktrace.post_service.exception.TagNotFoundException;
 import com.stacktrace.post_service.repository.PostRepository;
@@ -208,5 +209,41 @@ public class PostServiceImpl implements PostService {
         post.setDeletedAt(Instant.now());
 
         postRepository.save(post);
+    }
+
+    @Override
+    @Transactional
+    public void publishPost(Long postId) {
+
+        Post post = getActivePost(postId);
+
+        checkOwnership(post);
+        checkNotPublished(post);
+        post.setStatus(PostStatus.PUBLISHED);
+        post.setPublishedAt(Instant.now());
+
+        postRepository.save(post);
+    }
+
+    private void checkNotPublished(Post post) {
+        if (post.getStatus() == PostStatus.PUBLISHED) {
+            throw new PostAlreadyPublishedException(
+                    "Post is already published."
+            );
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getMyPosts(Pageable pageable) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+
+        Page<Post> posts =
+                postRepository.findByAuthorIdAndDeletedAtIsNull(
+                        currentUserId,
+                        pageable
+                );
+
+        return posts.map(this::mapToResponse);
     }
 }
