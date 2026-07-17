@@ -75,4 +75,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(error);
     }
 
+    @ExceptionHandler(PostNotScheduledException.class)
+    public ResponseEntity<ErrorResponse> handlePostNotScheduledException(
+            PostNotScheduledException ex
+    ) {
+
+        ErrorResponse error = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.badRequest().body(error);
+    }
+
 }

@@ -8,6 +8,7 @@ import com.stacktrace.post_service.entity.Tag;
 import com.stacktrace.post_service.enums.PostStatus;
 import com.stacktrace.post_service.exception.PostAlreadyPublishedException;
 import com.stacktrace.post_service.exception.PostNotFoundException;
+import com.stacktrace.post_service.exception.PostNotScheduledException;
 import com.stacktrace.post_service.exception.TagNotFoundException;
 import com.stacktrace.post_service.repository.PostRepository;
 import com.stacktrace.post_service.repository.TagRepository;
@@ -245,5 +246,22 @@ public class PostServiceImpl implements PostService {
                 );
 
         return posts.map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional
+    public void cancelScheduledPublish(Long postId) {
+        Post post = getActivePost(postId);
+        checkOwnership(post);
+        checkDraft(post);
+
+        if (post.getScheduledPublishAt() == null) {
+            throw new PostNotScheduledException(
+                    "Post is not scheduled for publishing."
+            );
+        }
+
+        post.setScheduledPublishAt(null);
+        postRepository.save(post);
     }
 }

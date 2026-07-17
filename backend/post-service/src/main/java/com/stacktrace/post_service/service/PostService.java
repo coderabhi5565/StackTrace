@@ -6,6 +6,8 @@ import com.stacktrace.post_service.dto.response.PostResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
+
 public interface PostService {
 
     PostResponse createPost(CreatePostRequest request);
@@ -21,4 +23,6 @@ public interface PostService {
     void publishPost(Long postId);
 
     Page<PostResponse> getMyPosts(Pageable pageable);
+    void schedulePublish(Long postId, Instant publishAt);
+    void cancelScheduledPublish(Long postId);
 }

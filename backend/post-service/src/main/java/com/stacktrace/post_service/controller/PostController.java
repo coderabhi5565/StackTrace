@@ -1,6 +1,7 @@
 package com.stacktrace.post_service.controller;
 
 import com.stacktrace.post_service.dto.request.CreatePostRequest;
+import com.stacktrace.post_service.dto.request.SchedulePublishRequest;
 import com.stacktrace.post_service.dto.request.UpdatePostRequest;
 import com.stacktrace.post_service.dto.response.PostResponse;
 import com.stacktrace.post_service.dto.response.UploadResponse;
@@ -93,5 +94,20 @@ public class PostController {
         );
     }
 
+    @PostMapping("/{id}/schedule")
+    public ResponseEntity<Void> schedulePublish(
+            @PathVariable Long id,
+            @Valid @RequestBody SchedulePublishRequest request
+    ) {
+        postService.schedulePublish(id, request.getPublishAt());
+        return ResponseEntity.noContent().build();
+    }
 
+    @PatchMapping("/{id}/cancel-schedule")
+    public ResponseEntity<Void> cancelScheduledPublish(
+            @PathVariable Long id
+    ) {
+        postService.cancelScheduledPublish(id);
+        return ResponseEntity.noContent().build();
+    }
 }
