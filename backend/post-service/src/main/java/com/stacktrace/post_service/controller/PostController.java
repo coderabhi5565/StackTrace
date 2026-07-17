@@ -1,6 +1,7 @@
 package com.stacktrace.post_service.controller;
 
 import com.stacktrace.post_service.dto.request.CreatePostRequest;
+import com.stacktrace.post_service.dto.request.UpdatePostRequest;
 import com.stacktrace.post_service.dto.response.PostResponse;
 import com.stacktrace.post_service.service.PostService;
 import jakarta.validation.Valid;
@@ -48,5 +49,25 @@ public class PostController {
                 postService.getAllPublishedPosts(pageable);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{postId}")
+    public ResponseEntity<PostResponse> updatePost(
+            @PathVariable Long postId,
+            @Valid @RequestBody UpdatePostRequest request
+    ) {
+
+        return ResponseEntity.ok(
+                postService.updatePost(postId, request)
+        );
+    }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> deletePost(
+            @PathVariable Long postId
+    ) {
+
+        postService.deletePost(postId);
+        return ResponseEntity.noContent().build();
     }
 }
