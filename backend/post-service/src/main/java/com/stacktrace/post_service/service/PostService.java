@@ -25,4 +25,6 @@ public interface PostService {
     Page<PostResponse> getMyPosts(Pageable pageable);
     void schedulePublish(Long postId, Instant publishAt);
     void cancelScheduledPublish(Long postId);
+
+    boolean existsById(Long id);
 }

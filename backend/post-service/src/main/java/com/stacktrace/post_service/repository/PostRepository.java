@@ -30,4 +30,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             PostStatus status,
             Instant time
     );
+
+    boolean existsByIdAndDeletedAtIsNull(Long id);
 }

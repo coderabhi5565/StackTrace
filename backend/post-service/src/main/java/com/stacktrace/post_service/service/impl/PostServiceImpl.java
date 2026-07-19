@@ -250,6 +250,22 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    public void schedulePublish(Long postId, Instant publishAt) {
+        Post post = getActivePost(postId);
+        checkOwnership(post);
+        checkNotPublished(post);
+
+        if (publishAt == null || !publishAt.isAfter(Instant.now())) {
+            throw new IllegalArgumentException(
+                    "Publish time must be in the future."
+            );
+        }
+        post.setScheduledPublishAt(publishAt);
+        postRepository.save(post);
+    }
+
+    @Override
+    @Transactional
     public void cancelScheduledPublish(Long postId) {
         Post post = getActivePost(postId);
         checkOwnership(post);
@@ -263,5 +279,9 @@ public class PostServiceImpl implements PostService {
 
         post.setScheduledPublishAt(null);
         postRepository.save(post);
+    }
+
+    public boolean existsById(Long id){
+        return postRepository.existsByIdAndDeletedAtIsNull(id);
     }
 }
