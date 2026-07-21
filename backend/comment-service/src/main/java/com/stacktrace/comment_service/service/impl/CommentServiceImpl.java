@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -80,15 +81,46 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void deleteComment(Long commentId, Long userId) {
 
+        Comment comment = commentRepository
+                .findByIdAndDeletedAtIsNull(commentId)
+                .orElseThrow(() ->
+                        new CommentNotFoundException("Comment not found."));
+
+        if (!comment.getAuthorId().equals(userId)) {
+            throw new UnauthorizedCommentAccessException(
+                    "You are not allowed to delete this comment."
+            );
+        }
+
+        comment.setDeletedAt(LocalDateTime.now());
+
+        commentRepository.save(comment);
     }
 
     @Override
-    public List<CommentResponse> getCommentsByPost(Long postId) {
-        return List.of();
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public List<CommentResponse> getReplies(Long commentId) {
-        return List.of();
+
+        List<Comment> replies = commentRepository
+                .findByParentCommentIdAndDeletedAtIsNull(commentId);
+
+        return replies.stream()
+                .map(commentMapper::toResponse)
+                .toList();
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getCommentsByPost(Long postId) {
+        if(!postClient.exists(postId)){
+            throw new PostNotFoundException("Post does Not Exists");
+        }
+        List<Comment> comments = commentRepository
+                .findByPostIdAndParentCommentIsNullAndDeletedAtIsNull(postId);
+
+        return comments.stream()
+                .map(commentMapper::toResponse)
+                .toList();
     }
 }
