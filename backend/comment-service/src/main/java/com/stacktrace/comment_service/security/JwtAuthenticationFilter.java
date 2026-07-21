@@ -1,6 +1,4 @@
-package com.stacktrace.commentservice.filter;
-
-import com.stacktrace.comment_service.security.JwtService;
+package com.stacktrace.comment_service.security;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -12,7 +12,10 @@ public class CurrentUserUtil {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("No authenticated user found.");
+        }
+
         return Long.valueOf(authentication.getName());
     }
-
 }

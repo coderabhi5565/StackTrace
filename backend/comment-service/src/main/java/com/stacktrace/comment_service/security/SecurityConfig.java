@@ -1,6 +1,6 @@
-package com.stacktrace.commentservice.config;
+package com.stacktrace.comment_service.security;
 
-import com.stacktrace.commentservice.filter.JwtAuthenticationFilter;
+import com.stacktrace.comment_service.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
