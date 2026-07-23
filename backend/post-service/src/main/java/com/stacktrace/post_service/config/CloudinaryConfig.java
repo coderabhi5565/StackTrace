@@ -1,4 +1,4 @@
-package com.stacktrace.postservice.config;
+package com.stacktrace.post_service.config;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;

@@ -3,6 +3,7 @@ package com.stacktrace.post_service.service.impl;
 import com.stacktrace.post_service.dto.request.CreatePostRequest;
 import com.stacktrace.post_service.dto.request.UpdatePostRequest;
 import com.stacktrace.post_service.dto.response.PostResponse;
+import com.stacktrace.post_service.dto.response.PostSearchResponse;
 import com.stacktrace.post_service.entity.Post;
 import com.stacktrace.post_service.entity.Tag;
 import com.stacktrace.post_service.enums.PostStatus;
@@ -283,5 +284,19 @@ public class PostServiceImpl implements PostService {
 
     public boolean existsById(Long id){
         return postRepository.existsByIdAndDeletedAtIsNull(id);
+    }
+
+    @Override
+    public List<PostSearchResponse> searchPosts(String keyword) {
+
+        return postRepository.searchPosts(keyword)
+                .stream()
+                .map(post -> PostSearchResponse.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .slug(post.getSlug())
+                        .coverImageUrl(post.getCoverImageUrl())
+                        .build())
+                .toList();
     }
 }

@@ -69,6 +69,9 @@ public class Post extends BaseEntity {
 
     private Instant deletedAt;
 
+    @Column(length = 300)
+    private String excerpt;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "post_tag",
