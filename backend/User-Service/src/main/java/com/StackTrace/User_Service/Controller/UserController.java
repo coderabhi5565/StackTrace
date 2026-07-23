@@ -123,4 +123,14 @@ public class UserController {
                 )
         );
     }
+
+    @GetMapping("/internal/users/search")
+    public ResponseEntity<List<UserSearchResponse>> searchUsers(
+            @RequestParam String keyword
+    ) {
+
+        return ResponseEntity.ok(
+                us.searchUsers(keyword)
+        );
+    }
 }

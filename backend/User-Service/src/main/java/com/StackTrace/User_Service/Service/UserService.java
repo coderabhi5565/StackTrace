@@ -378,4 +378,25 @@ public class UserService {
                 .last(users.isLast())
                 .build();
     }
+
+
+    public List<UserSearchResponse> searchUsers(String keyword) {
+
+        Page<User> users = up
+                .findByUsernameContainingIgnoreCaseOrNameContainingIgnoreCase(
+                        keyword,
+                        keyword,
+                        PageRequest.of(0, 10)
+                );
+
+        return users.getContent()
+                .stream()
+                .map(user -> UserSearchResponse.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .name(user.getName())
+                        .avatarUrl(user.getAvatarUrl())
+                        .build())
+                .toList();
+    }
 }
