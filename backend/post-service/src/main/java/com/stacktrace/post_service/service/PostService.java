@@ -31,4 +31,5 @@ public interface PostService {
     boolean existsById(Long id);
 
     List<PostSearchResponse> searchPosts(String keyword);
+    Long getAuthorId(Long postId);
 }

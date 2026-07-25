@@ -1,5 +1,6 @@
 package com.stacktrace.post_service.controller;
 
+import com.stacktrace.post_service.dto.response.AuthorResponse;
 import com.stacktrace.post_service.dto.response.PostSearchResponse;
 import com.stacktrace.post_service.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -25,5 +26,17 @@ public class InternalPostController {
             @RequestParam String keyword
     ){
         return ResponseEntity.ok(postService.searchPosts(keyword));
+    }
+
+    @GetMapping("/internal/posts/{postId}/author")
+    public ResponseEntity<AuthorResponse> getAuthorId(
+            @PathVariable Long postId
+    ) {
+
+        return ResponseEntity.ok(
+                AuthorResponse.builder()
+                        .authorId(postService.getAuthorId(postId))
+                        .build()
+        );
     }
 }

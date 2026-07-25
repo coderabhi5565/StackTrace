@@ -299,4 +299,13 @@ public class PostServiceImpl implements PostService {
                         .build())
                 .toList();
     }
+
+    @Override
+    public Long getAuthorId(Long postId) {
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found."));
+
+        return post.getAuthorId();
+    }
 }
