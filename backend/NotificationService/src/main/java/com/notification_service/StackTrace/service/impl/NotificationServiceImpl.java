@@ -2,6 +2,7 @@ package com.notification_service.StackTrace.service.impl;
 
 import com.notification_service.StackTrace.dto.request.NotificationRequest;
 import com.notification_service.StackTrace.dto.response.NotificationResponse;
+import com.notification_service.StackTrace.exception.NotificationNotFoundException;
 import com.notification_service.StackTrace.service.NotificationService;
 import com.notification_service.StackTrace.entity.Notification;
 import com.notification_service.StackTrace.repository.NotificationRepository;
@@ -46,7 +47,7 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationResponse markAsRead(Long notificationId) {
 
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new NotificationNotFoundException("Notification not found"));
 
         notification.setIsRead(true);
 
