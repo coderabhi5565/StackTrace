@@ -1,10 +1,13 @@
 package com.stacktrace.comment_service.service.impl;
 
+import com.stacktrace.comment_service.client.NotificationClient;
 import com.stacktrace.comment_service.client.PostClient;
 import com.stacktrace.comment_service.dto.request.CreateCommentRequest;
+import com.stacktrace.comment_service.dto.request.NotificationRequest;
 import com.stacktrace.comment_service.dto.request.UpdateCommentRequest;
 import com.stacktrace.comment_service.dto.response.CommentResponse;
 import com.stacktrace.comment_service.entity.Comment;
+import com.stacktrace.comment_service.enums.NotificationType;
 import com.stacktrace.comment_service.exception.CommentNotFoundException;
 import com.stacktrace.comment_service.exception.InvalidCommentRequestException;
 import com.stacktrace.comment_service.exception.PostNotFoundException;
@@ -26,6 +29,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
     private final PostClient postClient;
+    private final NotificationClient notificationClient;
 
     @Override
     public CommentResponse createComment(CreateCommentRequest request, Long userId) {
@@ -33,8 +37,11 @@ public class CommentServiceImpl implements CommentService {
         if (!postClient.exists(request.getPostId())) {
             throw new PostNotFoundException("Post not found.");
         }
+
         Comment parentComment = null;
+
         if (request.getParentCommentId() != null) {
+
             parentComment = commentRepository
                     .findByIdAndDeletedAtIsNull(request.getParentCommentId())
                     .orElseThrow(() ->
@@ -54,6 +61,39 @@ public class CommentServiceImpl implements CommentService {
         );
 
         Comment savedComment = commentRepository.save(comment);
+
+        Long recipientId;
+        NotificationType notificationType;
+        String message;
+
+        if (parentComment == null) {
+
+            recipientId = postClient
+                    .getAuthorId(request.getPostId())
+                    .getAuthorId();
+            notificationType = NotificationType.COMMENT;
+            message = "commented on your post.";
+
+        } else {
+
+            recipientId = parentComment.getAuthorId();
+            notificationType = NotificationType.REPLY;
+            message = "replied to your comment.";
+        }
+
+        if (!recipientId.equals(userId)) {
+
+            NotificationRequest notificationRequest =
+                    NotificationRequest.builder()
+                            .recipientId(recipientId)
+                            .senderId(userId)
+                            .type(notificationType)
+                            .message(message)
+                            .referenceId(savedComment.getId())
+                            .build();
+
+            notificationClient.createNotification(notificationRequest);
+        }
 
         return commentMapper.toResponse(savedComment);
     }
