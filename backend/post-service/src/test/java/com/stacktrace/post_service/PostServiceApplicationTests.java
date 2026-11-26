@@ -36,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "jwt.secret=" + PostServiceApplicationTests.SECRET,
-        "internal.api-token=test-internal-token-123"
+        "internal.api-token=test-internal-token-123",
+        "spring.cache.type=none"
 })
 @AutoConfigureMockMvc
 @Testcontainers

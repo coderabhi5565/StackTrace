@@ -20,7 +20,13 @@ import com.stacktrace.post_service.security.util.SecurityUtils;
 import com.stacktrace.post_service.service.MarkdownText;
 import com.stacktrace.post_service.service.PostMapper;
 import com.stacktrace.post_service.service.PostService;
+import com.stacktrace.post_service.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -47,10 +53,15 @@ public class PostServiceImpl implements PostService {
     private final TagRepository tagRepository;
     private final PostMapper mapper;
     private final UserClient userClient;
+    private final CacheManager cacheManager;
 
     // ------------------------------------------------------------------ writes
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.LATEST_FEED, allEntries = true),
+            @CacheEvict(value = CacheConfig.TRENDING, allEntries = true),
+            @CacheEvict(value = CacheConfig.TAGS, allEntries = true)})
     public PostResponse createPost(CreatePostRequest request) {
         Long authorId = SecurityUtils.getCurrentUserId();
 
@@ -68,6 +79,10 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.LATEST_FEED, allEntries = true),
+            @CacheEvict(value = CacheConfig.TRENDING, allEntries = true),
+            @CacheEvict(value = CacheConfig.TAGS, allEntries = true)})
     public PostResponse updatePost(Long postId, UpdatePostRequest request) {
         Post post = getActivePost(postId);
         checkOwnership(post);
@@ -77,24 +92,35 @@ public class PostServiceImpl implements PostService {
         if (post.getStatus() != PostStatus.PUBLISHED && !post.getTitle().equals(title)) {
             post.setSlug(generateUniqueSlug(title));
         }
+        evictSlug(post.getSlug());
         post.setTitle(title);
         applyContent(post, request.getContent(), request.getExcerpt(), request.getCoverImageUrl(), request.getTags());
         return mapper.toResponse(postRepository.save(post));
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.LATEST_FEED, allEntries = true),
+            @CacheEvict(value = CacheConfig.TRENDING, allEntries = true),
+            @CacheEvict(value = CacheConfig.TAGS, allEntries = true)})
     public void deletePost(Long postId) {
         Post post = getActivePost(postId);
         checkOwnership(post);
+        evictSlug(post.getSlug());
         post.setDeletedAt(Instant.now());
         postRepository.save(post);
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.LATEST_FEED, allEntries = true),
+            @CacheEvict(value = CacheConfig.TRENDING, allEntries = true),
+            @CacheEvict(value = CacheConfig.TAGS, allEntries = true)})
     public PostResponse publishPost(Long postId) {
         Post post = getActivePost(postId);
         checkOwnership(post);
         checkNotPublished(post);
+        evictSlug(post.getSlug());
         markPublished(post);
         return mapper.toResponse(postRepository.save(post));
     }
@@ -138,6 +164,18 @@ public class PostServiceImpl implements PostService {
         if (firstPublish) {
             Long author = post.getAuthorId();
             AfterCommit.runAsync(() -> userClient.addPoints(author, POINTS_FOR_PUBLISH));
+        }
+    }
+
+    /** Drops a cached post detail (best effort: Redis outages must not fail writes). */
+    private void evictSlug(String slug) {
+        Cache cache = cacheManager.getCache(CacheConfig.POST_BY_SLUG);
+        if (cache != null) {
+            try {
+                cache.evict(slug);
+            } catch (RuntimeException ignored) {
+                // stale entry expires with its TTL
+            }
         }
     }
 
@@ -202,6 +240,8 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
+    // only public (published) posts are cached; drafts are per-author
+    @Cacheable(value = CacheConfig.POST_BY_SLUG, key = "#slug", unless = "#result.status.name() != 'PUBLISHED'")
     public PostResponse getPostBySlug(String slug) {
         Post post = postRepository.findBySlugAndDeletedAtIsNull(slug)
                 .orElseThrow(() -> new PostNotFoundException("Post not found."));
@@ -228,16 +268,18 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.LATEST_FEED, key = "#page + ':' + #size + ':' + (#tag == null ? '' : #tag.toLowerCase())")
     public PageResponse<PostSummaryResponse> getAllPublishedPosts(int page, int size, String tag) {
         PageRequest pageable = pageable(page, size, NEWEST_PUBLISHED);
         Page<Post> posts = (tag == null || tag.isBlank())
-                ? postRepository.findByStatusAndDeletedAtIsNull(PostStatus.PUBLISHED, pageable)
+                ? postRepository.findPublished(pageable)
                 : postRepository.findPublishedByTag(tag.trim().toLowerCase(Locale.ROOT), pageable);
         return mapper.toSummaryPage(posts);
     }
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.TRENDING, key = "#page + ':' + #size")
     public PageResponse<PostSummaryResponse> getTrendingPosts(int page, int size) {
         return mapper.toSummaryPage(postRepository.findTrending(pageable(page, size)));
     }
@@ -304,6 +346,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.TAGS, key = "#limit")
     public List<TagResponse> getPopularTags(int limit) {
         return tagRepository.findPopular(PageRequest.of(0, Math.min(Math.max(limit, 1), 50)));
     }

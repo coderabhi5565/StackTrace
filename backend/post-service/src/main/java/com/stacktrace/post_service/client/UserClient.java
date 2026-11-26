@@ -1,6 +1,9 @@
 package com.stacktrace.post_service.client;
 
+import com.stacktrace.post_service.config.CacheConfig;
 import com.stacktrace.post_service.dto.response.AuthorSummary;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import com.stacktrace.post_service.security.filter.InternalApiFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,8 +15,6 @@ import org.springframework.web.client.RestClientException;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /** Calls user-service's internal API. Every call has timeouts and degrades gracefully. */
 @Slf4j
@@ -21,9 +22,12 @@ import java.util.stream.Collectors;
 public class UserClient {
 
     private final RestClient rest;
+    private final CacheManager cacheManager;
 
     public UserClient(@Value("${services.user.url}") String baseUrl,
-                      @Value("${internal.api-token}") String internalToken) {
+                      @Value("${internal.api-token}") String internalToken,
+                      CacheManager cacheManager) {
+        this.cacheManager = cacheManager;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(2));
         factory.setReadTimeout(Duration.ofSeconds(3));
@@ -34,7 +38,10 @@ public class UserClient {
                 .build();
     }
 
-    /** Resolves author summaries; unknown/unreachable ids map to a placeholder author. */
+    /**
+     * Resolves author summaries: cached per id (10 min), the misses fetched in one batch call.
+     * Unknown/unreachable ids map to a placeholder author (not cached).
+     */
     public Map<Long, AuthorSummary> findAuthors(Collection<Long> ids) {
         Set<Long> unique = new LinkedHashSet<>(ids);
         unique.remove(null);
@@ -42,13 +49,39 @@ public class UserClient {
             return Map.of();
         }
         Map<Long, AuthorSummary> result = new HashMap<>();
+        Cache cache = cacheManager.getCache(CacheConfig.AUTHORS);
+        if (cache != null) {
+            for (Long id : unique) {
+                try {
+                    AuthorSummary hit = cache.get(id, AuthorSummary.class);
+                    if (hit != null) {
+                        result.put(id, hit);
+                    }
+                } catch (RuntimeException e) {
+                    log.debug("author cache read failed: {}", e.getMessage());
+                }
+            }
+            unique.removeAll(result.keySet());
+            if (unique.isEmpty()) {
+                return result;
+            }
+        }
         try {
             List<AuthorSummary> found = rest.get()
                     .uri(u -> u.path("/internal/users/batch").queryParam("ids", unique.toArray()).build())
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<AuthorSummary>>() {});
             if (found != null) {
-                result.putAll(found.stream().collect(Collectors.toMap(AuthorSummary::id, Function.identity())));
+                for (AuthorSummary a : found) {
+                    result.put(a.id(), a);
+                    if (cache != null) {
+                        try {
+                            cache.put(a.id(), a);
+                        } catch (RuntimeException e) {
+                            log.debug("author cache write failed: {}", e.getMessage());
+                        }
+                    }
+                }
             }
         } catch (RestClientException e) {
             log.warn("user-service batch lookup failed: {}", e.getMessage());
