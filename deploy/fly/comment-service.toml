@@ -1,0 +1,35 @@
+# Fly.io app for comment-service. Rendered by deploy/fly/deploy.sh (__PREFIX__ / __REGION__ placeholders).
+app = "__PREFIX__-comment-service"
+primary_region = "__REGION__"
+
+[env]
+  PORT = "8083"
+  SPRING_PROFILES_ACTIVE = "prod"
+  JAVA_OPTS = "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError -XX:TieredStopAtLevel=1"
+  USER_SERVICE_URL = "http://__PREFIX__-user-service.flycast"
+  POST_SERVICE_URL = "http://__PREFIX__-post-service.flycast"
+  COMMENT_SERVICE_URL = "http://__PREFIX__-comment-service.flycast"
+  SEARCH_SERVICE_URL = "http://__PREFIX__-search-service.flycast"
+  NOTIFICATION_SERVICE_URL = "http://__PREFIX__-notification-service.flycast"
+
+[http_service]
+  internal_port = 8083
+  force_https = false
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 300
+
+[[http_service.checks]]
+  grace_period = "90s"
+  interval = "15s"
+  timeout = "5s"
+  method = "GET"
+  path = "/actuator/health/readiness"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
