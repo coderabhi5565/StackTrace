@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Internal: author id of a post (used by comment-service for notifications). */
 @Getter
 @Setter
 @NoArgsConstructor

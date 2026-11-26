@@ -1,15 +1,20 @@
 package com.stacktrace.post_service.dto.response;
 
 import com.stacktrace.post_service.enums.PostStatus;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.Instant;
-import java.util.Set;
+import java.util.List;
 
 @Getter
 @Builder
-public class PostResponse {
+@NoArgsConstructor
+@AllArgsConstructor
+public class PostResponse implements Serializable {
 
     private Long id;
 
@@ -17,15 +22,26 @@ public class PostResponse {
 
     private String slug;
 
+    private String excerpt;
+
+    /** Raw markdown. */
     private String content;
 
     private String coverImageUrl;
 
     private Long authorId;
 
+    private AuthorSummary author;
+
     private PostStatus status;
 
-    private Set<String> tags;
+    private List<String> tags;
+
+    private int readingTime;
+
+    private int likeCount;
+
+    private int commentCount;
 
     private Instant scheduledAt;
 
@@ -34,5 +50,4 @@ public class PostResponse {
     private Instant createdAt;
 
     private Instant updatedAt;
-
 }

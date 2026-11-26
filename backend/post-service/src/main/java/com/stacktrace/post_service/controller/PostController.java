@@ -3,19 +3,18 @@ package com.stacktrace.post_service.controller;
 import com.stacktrace.post_service.dto.request.CreatePostRequest;
 import com.stacktrace.post_service.dto.request.SchedulePublishRequest;
 import com.stacktrace.post_service.dto.request.UpdatePostRequest;
+import com.stacktrace.post_service.dto.response.EngagementResponse;
+import com.stacktrace.post_service.dto.response.PageResponse;
 import com.stacktrace.post_service.dto.response.PostResponse;
-import com.stacktrace.post_service.dto.response.UploadResponse;
+import com.stacktrace.post_service.dto.response.PostSummaryResponse;
+import com.stacktrace.post_service.enums.PostStatus;
+import com.stacktrace.post_service.service.EngagementService;
 import com.stacktrace.post_service.service.PostService;
-import com.stacktrace.post_service.service.UploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -23,91 +22,122 @@ import org.springframework.web.multipart.MultipartFile;
 public class PostController {
 
     private final PostService postService;
-    private final UploadService uploadService;
-    @PostMapping
-    public ResponseEntity<PostResponse> createPost(
-         @Valid @RequestBody CreatePostRequest request
-    ) {
+    private final EngagementService engagementService;
 
-        PostResponse response = postService.createPost(request);
+    // ---------------------------------------------------------------- lists
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(response);
+    /** Latest published posts, optionally filtered by tag. */
+    @GetMapping
+    public PageResponse<PostSummaryResponse> getAllPublishedPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String tag) {
+        return postService.getAllPublishedPosts(page, size, tag);
     }
+
+    @GetMapping("/trending")
+    public PageResponse<PostSummaryResponse> trending(@RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "10") int size) {
+        return postService.getTrendingPosts(page, size);
+    }
+
+    @GetMapping("/feed/following")
+    public PageResponse<PostSummaryResponse> followingFeed(@RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "10") int size) {
+        return postService.getFollowingFeed(page, size);
+    }
+
+    @GetMapping("/user/{authorId}")
+    public PageResponse<PostSummaryResponse> byAuthor(@PathVariable Long authorId,
+                                                      @RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "10") int size) {
+        return postService.getPostsByAuthor(authorId, page, size);
+    }
+
+    /** The current user's posts (all statuses unless filtered). */
+    @GetMapping("/me")
+    public PageResponse<PostSummaryResponse> getMyPosts(@RequestParam(required = false) PostStatus status,
+                                                        @RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "10") int size) {
+        return postService.getMyPosts(status, page, size);
+    }
+
+    @GetMapping("/bookmarks")
+    public PageResponse<PostSummaryResponse> bookmarks(@RequestParam(defaultValue = "0") int page,
+                                                       @RequestParam(defaultValue = "10") int size) {
+        return engagementService.myBookmarks(page, size);
+    }
+
+    // ---------------------------------------------------------------- single post
 
     @GetMapping("/{slug}")
-    public ResponseEntity<PostResponse> getPostBySlug(
-            @PathVariable String slug
-    ) {
-
-        PostResponse response = postService.getPostBySlug(slug);
-
-        return ResponseEntity.ok(response);
+    public PostResponse getPostBySlug(@PathVariable String slug) {
+        return postService.getPostBySlug(slug);
     }
 
-    @GetMapping
-    public ResponseEntity<Page<PostResponse>> getAllPublishedPosts(
-            Pageable pageable
-    ) {
+    @GetMapping("/id/{postId}")
+    public PostResponse getPostById(@PathVariable Long postId) {
+        return postService.getPostById(postId);
+    }
 
-        Page<PostResponse> response =
-                postService.getAllPublishedPosts(pageable);
-
-        return ResponseEntity.ok(response);
+    @PostMapping
+    public ResponseEntity<PostResponse> createPost(@Valid @RequestBody CreatePostRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(postService.createPost(request));
     }
 
     @PutMapping("/{postId}")
-    public ResponseEntity<PostResponse> updatePost(
-            @PathVariable Long postId,
-            @Valid @RequestBody UpdatePostRequest request
-    ) {
-
-        return ResponseEntity.ok(
-                postService.updatePost(postId, request)
-        );
+    public PostResponse updatePost(@PathVariable Long postId, @Valid @RequestBody UpdatePostRequest request) {
+        return postService.updatePost(postId, request);
     }
 
     @DeleteMapping("/{postId}")
-    public ResponseEntity<Void> deletePost(
-            @PathVariable Long postId
-    ) {
-
+    public ResponseEntity<Void> deletePost(@PathVariable Long postId) {
         postService.deletePost(postId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{postId}/publish")
-    public ResponseEntity<Void> publishPost(
-            @PathVariable Long postId
-    ) {
-        postService.publishPost(postId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<Page<PostResponse>> getMyPosts(
-            Pageable pageable
-    ) {
-
-        return ResponseEntity.ok(
-                postService.getMyPosts(pageable)
-        );
+    public PostResponse publishPost(@PathVariable Long postId) {
+        return postService.publishPost(postId);
     }
 
     @PostMapping("/{id}/schedule")
-    public ResponseEntity<Void> schedulePublish(
-            @PathVariable Long id,
-            @Valid @RequestBody SchedulePublishRequest request
-    ) {
+    public ResponseEntity<Void> schedulePublish(@PathVariable Long id,
+                                                @Valid @RequestBody SchedulePublishRequest request) {
         postService.schedulePublish(id, request.getPublishAt());
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/cancel-schedule")
-    public ResponseEntity<Void> cancelScheduledPublish(
-            @PathVariable Long id
-    ) {
+    public ResponseEntity<Void> cancelScheduledPublish(@PathVariable Long id) {
         postService.cancelScheduledPublish(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ---------------------------------------------------------------- engagement
+
+    @GetMapping("/{postId:\\d+}/engagement")
+    public EngagementResponse engagement(@PathVariable Long postId) {
+        return engagementService.engagement(postId);
+    }
+
+    @PostMapping("/{postId}/like")
+    public EngagementResponse like(@PathVariable Long postId) {
+        return engagementService.like(postId);
+    }
+
+    @DeleteMapping("/{postId}/like")
+    public EngagementResponse unlike(@PathVariable Long postId) {
+        return engagementService.unlike(postId);
+    }
+
+    @PostMapping("/{postId}/bookmark")
+    public EngagementResponse bookmark(@PathVariable Long postId) {
+        return engagementService.bookmark(postId);
+    }
+
+    @DeleteMapping("/{postId}/bookmark")
+    public EngagementResponse removeBookmark(@PathVariable Long postId) {
+        return engagementService.removeBookmark(postId);
     }
 }

@@ -29,31 +29,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtService.isTokenValid(token)) {
+                Long userId = jwtService.extractUserId(token);
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList()));
+            }
         }
-
-        String token = authHeader.substring(7);
-
-        if(!jwtService.isTokenValid(token)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String email = jwtService.extractEmail(token);
-        if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            Long userId = jwtService.extractUserId(token);
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            userId,
-                            null,
-                            Collections.emptyList()
-                    );
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-
         filterChain.doFilter(request, response);
     }
 }
