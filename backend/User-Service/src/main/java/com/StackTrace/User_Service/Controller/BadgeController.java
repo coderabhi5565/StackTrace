@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/** Read-only. Badges are awarded automatically (points thresholds) or via the internal API. */
 @RestController
 @RequestMapping("/api/badges")
 @RequiredArgsConstructor
@@ -15,36 +16,8 @@ public class BadgeController {
 
     private final BadgeService badgeService;
 
-    @PostMapping(
-            "/users/{userId}/{badgeId}"
-    )
-    public ResponseEntity<String> awardBadge(
-            @PathVariable Long userId,
-            @PathVariable Long badgeId
-    ) {
-
-        badgeService.awardBadge(
-                userId,
-                badgeId
-        );
-
-        return ResponseEntity.ok(
-                "Badge awarded successfully"
-        );
-    }
-
-    @GetMapping(
-            "/users/{userId}"
-    )
-    public ResponseEntity<List<BadgeResponse>>
-    getUserBadges(
-            @PathVariable Long userId
-    ) {
-
-        return ResponseEntity.ok(
-                badgeService.getUserBadges(
-                        userId
-                )
-        );
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<List<BadgeResponse>> getUserBadges(@PathVariable Long userId) {
+        return ResponseEntity.ok(badgeService.getUserBadges(userId));
     }
 }

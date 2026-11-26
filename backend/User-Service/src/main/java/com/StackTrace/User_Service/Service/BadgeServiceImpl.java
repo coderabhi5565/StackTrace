@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -74,17 +75,21 @@ public class BadgeServiceImpl
             Long userId
     ) {
 
-        userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new UserNotFoundException(
-                                "User not found"
-                        ));
-
         return userBadgeRepository
-                .findByUser_Id(userId)
+                .findByUserIdWithBadge(userId)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    public void awardThresholdBadges(User user) {
+        Set<Long> owned = userBadgeRepository.findBadgeIdsByUserId(user.getId());
+        for (Badge badge : badgeRepository.findByPointsThresholdLessThanEqual(user.getPoints())) {
+            if (!owned.contains(badge.getId())) {
+                userBadgeRepository.save(UserBadge.builder().user(user).badge(badge).build());
+            }
+        }
     }
 
     private BadgeResponse mapToResponse(

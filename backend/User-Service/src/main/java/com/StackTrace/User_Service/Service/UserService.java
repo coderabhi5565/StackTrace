@@ -3,37 +3,63 @@ package com.StackTrace.User_Service.Service;
 import com.StackTrace.User_Service.Repository.FollowRepository;
 import com.StackTrace.User_Service.Repository.SkillRepository;
 import com.StackTrace.User_Service.Repository.UserRepository;
+import com.StackTrace.User_Service.Security.CurrentUser;
 import com.StackTrace.User_Service.dto.*;
 import com.StackTrace.User_Service.exception.*;
-import com.StackTrace.User_Service.model.*;
+import com.StackTrace.User_Service.model.Follow;
+import com.StackTrace.User_Service.model.Skill;
+import com.StackTrace.User_Service.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    /** Upper bound for any page size requested by a client. */
+    public static final int MAX_PAGE_SIZE = 50;
+
     private final BCryptPasswordEncoder bp;
     private final UserRepository up;
     private final JwtService jwtService;
     private final FollowRepository fp;
     private final SkillRepository sp;
+    private final RefreshTokenService refreshTokens;
+    private final BadgeService badgeService;
 
-    public RegisterResponse register(RegisterRequest rq){
-        if(up.existsByEmail(rq.getEmail())){
+    /** Used to keep login timing similar whether or not the email exists. */
+    private String dummyHash;
+
+    // ---------------------------------------------------------------- auth
+
+    @Transactional
+    public RegisterResponse register(RegisterRequest rq) {
+        String email = rq.getEmail().trim().toLowerCase(Locale.ROOT);
+        String username = rq.getUsername().trim();
+        if (up.existsByEmail(email)) {
             throw new EmailAlreadyExistsException("Email Already Registered");
         }
-        String hp = bp.encode(rq.getPassword());
-        User u = User.builder().name(rq.getName()).email(rq.getEmail()).username(rq.getUsername()).password(bp.encode(rq.getPassword())).build();
+        if (up.existsByUsernameIgnoreCase(username)) {
+            throw new UsernameAlreadyExistsException("Username already taken");
+        }
+        User u = User.builder()
+                .name(rq.getName().trim())
+                .email(email)
+                .username(username)
+                .password(bp.encode(rq.getPassword()))
+                .build();
         User ret = up.save(u);
+        badgeService.awardThresholdBadges(ret);
         RegisterResponse rp = new RegisterResponse();
         rp.setId(ret.getId());
         rp.setName(ret.getName());
@@ -42,56 +68,91 @@ public class UserService {
         return rp;
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest l) {
-        if (!up.existsByEmail(l.getEmail())) {
-            throw new RuntimeException("Invalid Credentials");
+        String email = l.getEmail().trim().toLowerCase(Locale.ROOT);
+        User user = up.findByEmail(email).orElse(null);
+        if (user == null) {
+            bp.matches(l.getPassword(), dummyHash());
+            throw new InvalidCredentialsException("Invalid email or password");
         }
-        User user = up.findByEmail(l.getEmail()).get();
         if (!bp.matches(l.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid Credentials");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
-        String token = jwtService.generateToken(user.getId(),l.getEmail());
+        return tokensFor(user, refreshTokens.issue(user.getId()));
+    }
+
+    /** noRollbackFor: on token reuse the "revoke all sessions" write must survive the 401. */
+    @Transactional(noRollbackFor = InvalidTokenException.class)
+    public LoginResponse refresh(String refreshToken) {
+        RefreshTokenService.Rotation rotation = refreshTokens.rotate(refreshToken);
+        User user = up.findById(rotation.userId())
+                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
+        return tokensFor(user, rotation.newToken());
+    }
+
+    public void logout(String refreshToken) {
+        refreshTokens.revoke(refreshToken);
+    }
+
+    private LoginResponse tokensFor(User user, String refreshToken) {
         return LoginResponse.builder()
-                .token(token)
+                .token(jwtService.generateToken(user.getId(), user.getUsername()))
+                .refreshToken(refreshToken)
+                .expiresIn(jwtService.getExpirationSeconds())
                 .id(user.getId())
                 .name(user.getName())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .build();
-
     }
 
-    public UserProfileResponse getUser(Long id) {
-        User u = up.findById(id).get();
-        if(u==null){
-            throw new UserNotFoundException("User Does Not Exist");
+    private String dummyHash() {
+        if (dummyHash == null) {
+            dummyHash = bp.encode("timing-equalizer-not-a-password");
         }
-        UserProfileResponse ret = UserProfileResponse.builder()
-                .id(id)
-                .name(u.getName())
-                .username(u.getUsername())
-                .bio(u.getBio())
-                .avatarUrl(u.getAvatarUrl())
-                .points(u.getPoints())
-                .location(u.getLocation())
-                .build();
-        return ret;
+        return dummyHash;
     }
 
+    // ---------------------------------------------------------------- profile
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUser(Long id) {
+        return toProfile(findUser(id));
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserByUsername(String username) {
+        User u = up.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new UserNotFoundException("User Does Not Exist"));
+        return toProfile(u);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse me() {
+        return toProfile(findUser(CurrentUser.id()));
+    }
+
+    @Transactional
     public UserProfileResponse update(UpdateProfileRequest ur) {
-        String email = getCurrentUserEmail();
-        User u = up.findByEmail(email).get();
-        if(ur.getBio()!=null){
+        User u = findUser(CurrentUser.id());
+        if (ur.getName() != null && !ur.getName().isBlank()) {
+            u.setName(ur.getName().trim());
+        }
+        if (ur.getBio() != null) {
             u.setBio(ur.getBio());
         }
-        if(ur.getAvatarUrl()!=null){
-            u.setAvatarUrl(ur.getAvatarUrl());
+        if (ur.getAvatarUrl() != null) {
+            u.setAvatarUrl(ur.getAvatarUrl().isBlank() ? null : ur.getAvatarUrl());
         }
-        if(ur.getLocation()!=null){
+        if (ur.getLocation() != null) {
             u.setLocation(ur.getLocation());
         }
-        up.save(u);
-        UserProfileResponse ret = UserProfileResponse.builder()
+        return toProfile(up.save(u));
+    }
+
+    private UserProfileResponse toProfile(User u) {
+        return UserProfileResponse.builder()
                 .id(u.getId())
                 .name(u.getName())
                 .username(u.getUsername())
@@ -99,163 +160,96 @@ public class UserService {
                 .avatarUrl(u.getAvatarUrl())
                 .points(u.getPoints())
                 .location(u.getLocation())
+                .joinedAt(u.getCreatedAt())
+                .rank(up.countWithMorePoints(u.getPoints()) + 1)
+                .followersCount(fp.countByFollowingId(u.getId()))
+                .followingCount(fp.countByFollowerId(u.getId()))
+                .skills(skillsOf(u.getId()))
+                .badges(badgeService.getUserBadges(u.getId()))
                 .build();
-        return ret;
     }
 
-    private String getCurrentUserEmail() {
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        return (String) authentication.getPrincipal();
+    private User findUser(Long id) {
+        return up.findById(id).orElseThrow(() -> new UserNotFoundException("User Does Not Exist"));
     }
 
-    public UserProfileResponse updatepoints(UpdatePointsRequest ups) {
-        String email = getCurrentUserEmail();
-        User u = up.findByEmail(email).get();
-        u.setPoints(u.getPoints() + ups.getPoints());
-        up.save(u);
-        UserProfileResponse ret = UserProfileResponse.builder()
-                .id(u.getId())
-                .name(u.getName())
-                .username(u.getUsername())
-                .bio(u.getBio())
-                .avatarUrl(u.getAvatarUrl())
-                .points(u.getPoints())
-                .location(u.getLocation())
-                .build();
-        return ret;
+    // ---------------------------------------------------------------- points (internal)
+
+    @Transactional
+    public UserProfileResponse addPoints(Long userId, int delta) {
+        findUser(userId);
+        up.addPoints(userId, delta);
+        User u = findUser(userId);
+        badgeService.awardThresholdBadges(u);
+        return toProfile(u);
     }
 
+    // ---------------------------------------------------------------- follow
+
+    @Transactional
     public ApiResponse followUser(Long targetId) {
-        String email = getCurrentUserEmail();
-        User currentUser = up.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Current user not found"));
-
-        User targetUser = up.findById(targetId)
-                .orElseThrow(() -> new UserNotFoundException("Target user not found"));
-
-        if (currentUser.getId().equals(targetUser.getId())) {
+        Long me = CurrentUser.id();
+        User targetUser = findUser(targetId);
+        if (me.equals(targetUser.getId())) {
             throw new SelfFollowException("You cannot follow yourself");
         }
-
-        if (fp.existsByFollowerIdAndFollowingId(
-                currentUser.getId(),
-                targetUser.getId())) {
-
+        if (fp.existsByFollowerIdAndFollowingId(me, targetId)) {
             throw new AlreadyFollowingException("Already following this user");
         }
-
-        Follow follow = Follow.builder()
-                .followerId(currentUser.getId())
-                .followingId(targetUser.getId())
-                .build();
-
-        fp.save(follow);
-
-        return ApiResponse.builder()
-                .success(true)
-                .message("User followed successfully")
-                .build();
+        fp.save(Follow.builder().followerId(me).followingId(targetId).build());
+        return ApiResponse.builder().success(true).message("User followed successfully").build();
     }
 
+    @Transactional
     public ApiResponse unfollowUser(Long targetId) {
-        String email = getCurrentUserEmail();
-        User currentUser = up.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Current user not found"));
-
-        up.findById(targetId)
-                .orElseThrow(() -> new UserNotFoundException("Target user not found"));
-
-        Follow follow = fp.findByFollowerIdAndFollowingId(
-                        currentUser.getId(),
-                        targetId)
-                .orElseThrow(() ->
-                        new BusinessException("Follow relationship not found"));
-
+        Long me = CurrentUser.id();
+        findUser(targetId);
+        Follow follow = fp.findByFollowerIdAndFollowingId(me, targetId)
+                .orElseThrow(() -> new BusinessException("Follow relationship not found"));
         fp.delete(follow);
-
-        return ApiResponse.builder()
-                .success(true)
-                .message("User unfollowed successfully")
-                .build();
+        return ApiResponse.builder().success(true).message("User unfollowed successfully").build();
     }
 
-    public List<UserSummaryResponse> getFollowers(Long id, int page, int size) {
-        up.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        Pageable pageable = PageRequest.of(page,size);
-        Page<Follow> follows = fp.findByFollowingId(id,pageable);
-
-        List<Long> followerIds = follows.getContent()
-                .stream()
-                .map(Follow::getFollowerId)
-                .toList();
-
-        List<User> users = up.findByIdIn(followerIds);
-
-        return users.stream()
-                .map(user -> UserSummaryResponse.builder()
-
-                        .id(user.getId())
-                        .name(user.getName())
-                        .username(user.getUsername())
-                        .avatarUrl(user.getAvatarUrl())
-                        .build())
-                .toList();
+    @Transactional(readOnly = true)
+    public FollowStatusResponse followStatus(Long targetId) {
+        return new FollowStatusResponse(fp.existsByFollowerIdAndFollowingId(CurrentUser.id(), targetId));
     }
 
-
-    public List<UserSummaryResponse> getFollowing(Long id,int page, int size){
-        up.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        Page<Follow> follows = fp.findByFollowerId(id,PageRequest.of(page,size));
-
-        List<Long> followingIds = follows.getContent().stream()
-                .map(Follow::getFollowingId)
-                .toList();
-
-        List<User> users = up.findByIdIn(followingIds);
-
-        return users.stream()
-                .map(user -> UserSummaryResponse.builder()
-                        .id(user.getId())
-                        .name(user.getName())
-                        .username(user.getUsername())
-                        .avatarUrl(user.getAvatarUrl())
-                        .build())
-                .toList();
+    @Transactional(readOnly = true)
+    public PagedResponse<UserSummaryResponse> getFollowers(Long id, int page, int size) {
+        findUser(id);
+        return PagedResponse.of(fp.findFollowers(id, pageable(page, size)));
     }
 
-    public PagedResponse<LeaderboardResponse>
-    getLeaderboard(int page, int size) {
+    @Transactional(readOnly = true)
+    public PagedResponse<UserSummaryResponse> getFollowing(Long id, int page, int size) {
+        findUser(id);
+        return PagedResponse.of(fp.findFollowing(id, pageable(page, size)));
+    }
 
-        Pageable pageable =
-                PageRequest.of(page, size);
+    @Transactional(readOnly = true)
+    public List<Long> getFollowingIds(Long id) {
+        return fp.findFollowingIds(id);
+    }
 
-        Page<User> users =
-                up.findAllByOrderByPointsDesc(pageable);
+    // ---------------------------------------------------------------- leaderboard
 
-        int rank = page * size + 1;
-
-        List<LeaderboardResponse> leaderboard =
-                new ArrayList<>();
-
-        for(User user : users.getContent()) {
-
-            leaderboard.add(
-                    LeaderboardResponse.builder()
-                            .rank(rank++)
-                            .username(user.getUsername())
-                            .name(user.getName())
-                            .points(user.getPoints())
-                            .build()
-            );
+    @Transactional(readOnly = true)
+    public PagedResponse<LeaderboardResponse> getLeaderboard(int page, int size) {
+        PageRequest pageable = pageable(page, size);
+        Page<User> users = up.findAllByOrderByPointsDescIdAsc(pageable);
+        int rank = (int) pageable.getOffset() + 1;
+        List<LeaderboardResponse> leaderboard = new ArrayList<>();
+        for (User user : users.getContent()) {
+            leaderboard.add(LeaderboardResponse.builder()
+                    .rank(rank++)
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .name(user.getName())
+                    .avatarUrl(user.getAvatarUrl())
+                    .points(user.getPoints())
+                    .build());
         }
-
         return PagedResponse.<LeaderboardResponse>builder()
                 .content(leaderboard)
                 .page(users.getNumber())
@@ -266,137 +260,71 @@ public class UserService {
                 .build();
     }
 
+    // ---------------------------------------------------------------- skills
+
+    @Transactional
     public SkillResponse addSkill(SkillRequest request) {
-        String email = getCurrentUserEmail();
-        User user = up.findByEmail(email)
-                .orElseThrow(() ->
-                        new UserNotFoundException(
-                                "User not found"));
-
-        if(sp.existsByUserIdAndSkillName(
-                user.getId(),
-                request.getSkillName())) {
-
-            throw new SkillAlreadyExistsException(
-                    "Skill already exists");
+        Long me = CurrentUser.id();
+        String name = request.getSkillName().trim();
+        if (sp.existsByUserIdAndSkillName(me, name)) {
+            throw new SkillAlreadyExistsException("Skill already exists");
         }
-
-        Skill skill = Skill.builder()
-                .userId(user.getId())
-                .skillName(request.getSkillName())
-                .build();
-
-        Skill savedSkill = sp.save(skill);
-
-        return SkillResponse.builder()
-                .id(savedSkill.getId())
-                .skillName(savedSkill.getSkillName())
-                .build();
+        Skill savedSkill = sp.save(Skill.builder().userId(me).skillName(name).build());
+        return SkillResponse.builder().id(savedSkill.getId()).skillName(savedSkill.getSkillName()).build();
     }
 
+    @Transactional(readOnly = true)
     public List<SkillResponse> getSkills(Long userId) {
-        up.findById(userId)
-                .orElseThrow(() ->
-                        new UserNotFoundException(
-                                "User not found"));
+        findUser(userId);
+        return skillsOf(userId);
+    }
 
-        List<Skill> skills =
-                sp.findByUserId(userId);
-
-        return skills.stream()
-                .map(skill ->
-                        SkillResponse.builder()
-                                .id(skill.getId())
-                                .skillName(skill.getSkillName())
-                                .build())
+    private List<SkillResponse> skillsOf(Long userId) {
+        return sp.findByUserId(userId).stream()
+                .map(skill -> SkillResponse.builder().id(skill.getId()).skillName(skill.getSkillName()).build())
                 .toList();
     }
 
+    @Transactional
     public ApiResponse deleteSkill(Long skillId) {
-
-        String email = getCurrentUserEmail();
-
-        User currentUser = up.findByEmail(email)
-                .orElseThrow(() ->
-                        new UserNotFoundException(
-                                "User not found"));
-
-        Skill skill = sp.findById(skillId)
-                .orElseThrow(() ->
-                        new SkillNotFoundException(
-                                "Skill not found"));
-
-        if (!skill.getUserId()
-                .equals(currentUser.getId())) {
-
-            throw new AccessDeniedException(
-                    "You cannot delete another user's skill");
+        Long me = CurrentUser.id();
+        Skill skill = sp.findById(skillId).orElseThrow(() -> new SkillNotFoundException("Skill not found"));
+        if (!skill.getUserId().equals(me)) {
+            throw new AccessDeniedException("You cannot delete another user's skill");
         }
-
         sp.delete(skill);
-
-        return ApiResponse.builder()
-                .success(true)
-                .message("Skill deleted successfully")
-                .build();
-    }
-    public PagedResponse<UserSummaryResponse> searchUsers(
-            String keyword,
-            int page,
-            int size
-    ) {
-
-        Pageable pageable =
-                PageRequest.of(page, size);
-
-        Page<User> users =
-                up.findByUsernameContainingIgnoreCaseOrNameContainingIgnoreCase(
-                        keyword,
-                        keyword,
-                        pageable
-                );
-
-        List<UserSummaryResponse> content =
-                users.getContent()
-                        .stream()
-                        .map(user ->
-                                UserSummaryResponse.builder()
-                                        .id(user.getId())
-                                        .name(user.getName())
-                                        .username(user.getUsername())
-                                        .avatarUrl(user.getAvatarUrl())
-                                        .build()
-                        )
-                        .toList();
-
-        return PagedResponse.<UserSummaryResponse>builder()
-                .content(content)
-                .page(users.getNumber())
-                .size(users.getSize())
-                .totalElements(users.getTotalElements())
-                .totalPages(users.getTotalPages())
-                .last(users.isLast())
-                .build();
+        return ApiResponse.builder().success(true).message("Skill deleted successfully").build();
     }
 
+    // ---------------------------------------------------------------- search & batch
 
-    public List<UserSearchResponse> searchUsers(String keyword) {
+    @Transactional(readOnly = true)
+    public PagedResponse<UserSummaryResponse> searchUsers(String keyword, int page, int size) {
+        String raw = keyword == null ? "" : keyword.trim();
+        if (raw.isEmpty()) {
+            throw new IllegalArgumentException("Keyword cannot be empty");
+        }
+        if (raw.length() > 100) {
+            raw = raw.substring(0, 100);
+        }
+        String escaped = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        Page<User> users = up.search(escaped, raw, pageable(page, size));
+        return PagedResponse.of(users.map(UserService::summary));
+    }
 
-        Page<User> users = up
-                .findByUsernameContainingIgnoreCaseOrNameContainingIgnoreCase(
-                        keyword,
-                        keyword,
-                        PageRequest.of(0, 10)
-                );
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> findByIds(Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return up.findByIdIn(ids).stream().map(UserService::summary).toList();
+    }
 
-        return users.getContent()
-                .stream()
-                .map(user -> UserSearchResponse.builder()
-                        .id(user.getId())
-                        .username(user.getUsername())
-                        .name(user.getName())
-                        .avatarUrl(user.getAvatarUrl())
-                        .build())
-                .toList();
+    static UserSummaryResponse summary(User user) {
+        return new UserSummaryResponse(user.getId(), user.getName(), user.getUsername(), user.getAvatarUrl());
+    }
+
+    static PageRequest pageable(int page, int size) {
+        return PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
     }
 }

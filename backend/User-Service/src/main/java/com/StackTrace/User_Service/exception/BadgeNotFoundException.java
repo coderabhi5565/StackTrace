@@ -1,7 +1,7 @@
 package com.StackTrace.User_Service.exception;
 
 public class BadgeNotFoundException
-        extends RuntimeException {
+        extends BusinessException {
 
     public BadgeNotFoundException(
             String message

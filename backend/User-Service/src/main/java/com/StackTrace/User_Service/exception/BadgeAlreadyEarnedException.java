@@ -1,7 +1,7 @@
 package com.StackTrace.User_Service.exception;
 
 public class BadgeAlreadyEarnedException
-        extends RuntimeException {
+        extends BusinessException {
 
     public BadgeAlreadyEarnedException(
             String message
