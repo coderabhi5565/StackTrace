@@ -38,7 +38,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </ThemeProvider>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   )

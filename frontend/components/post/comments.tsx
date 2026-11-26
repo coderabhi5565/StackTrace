@@ -296,8 +296,10 @@ export function Comments({ postId }: { postId: number }) {
                 <Skeleton className="h-16 flex-1 rounded-xl" />
               </li>
             ))}
-          {!loading && comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet. Start the conversation!</p>}
         </ul>
+      )}
+      {!error && !loading && comments.length === 0 && (
+        <p className="mt-6 text-sm text-muted-foreground">No comments yet. Start the conversation!</p>
       )}
 
       {last && !last.last && (

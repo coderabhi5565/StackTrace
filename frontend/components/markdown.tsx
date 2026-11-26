@@ -14,15 +14,15 @@ const schema = {
 }
 
 const components: Components = {
-  h1: (p) => <h2 className="mt-8 text-2xl font-bold tracking-tight" {...p} />,
-  h2: (p) => <h2 className="mt-8 text-2xl font-bold tracking-tight" {...p} />,
-  h3: (p) => <h3 className="mt-6 text-xl font-semibold tracking-tight" {...p} />,
-  h4: (p) => <h4 className="mt-5 text-lg font-semibold" {...p} />,
-  p: (p) => <p className="mt-4 text-[15px] leading-7 text-foreground/90" {...p} />,
-  ul: (p) => <ul className="mt-4 list-disc space-y-1.5 pl-6 text-[15px] text-foreground/90" {...p} />,
-  ol: (p) => <ol className="mt-4 list-decimal space-y-1.5 pl-6 text-[15px] text-foreground/90" {...p} />,
-  blockquote: (p) => <blockquote className="mt-4 border-l-2 border-primary/50 pl-4 italic text-muted-foreground" {...p} />,
-  a: ({ href, ...p }) => (
+  h1: ({ node: _n, ...p }) => <h2 className="mt-8 text-2xl font-bold tracking-tight" {...p} />,
+  h2: ({ node: _n, ...p }) => <h2 className="mt-8 text-2xl font-bold tracking-tight" {...p} />,
+  h3: ({ node: _n, ...p }) => <h3 className="mt-6 text-xl font-semibold tracking-tight" {...p} />,
+  h4: ({ node: _n, ...p }) => <h4 className="mt-5 text-lg font-semibold" {...p} />,
+  p: ({ node: _n, ...p }) => <p className="mt-4 text-[15px] leading-7 text-foreground/90" {...p} />,
+  ul: ({ node: _n, ...p }) => <ul className="mt-4 list-disc space-y-1.5 pl-6 text-[15px] text-foreground/90" {...p} />,
+  ol: ({ node: _n, ...p }) => <ol className="mt-4 list-decimal space-y-1.5 pl-6 text-[15px] text-foreground/90" {...p} />,
+  blockquote: ({ node: _n, ...p }) => <blockquote className="mt-4 border-l-2 border-primary/50 pl-4 italic text-muted-foreground" {...p} />,
+  a: ({ node: _n, href, ...p }) => (
     <a href={href} className="text-primary underline-offset-4 hover:underline" rel="noopener noreferrer nofollow" target="_blank" {...p} />
   ),
   hr: () => <hr className="my-8 border-border" />,
@@ -31,8 +31,8 @@ const components: Components = {
       <table className="w-full border-collapse text-sm" {...p} />
     </div>
   ),
-  th: (p) => <th className="border border-border bg-secondary/50 px-3 py-1.5 text-left font-semibold" {...p} />,
-  td: (p) => <td className="border border-border px-3 py-1.5" {...p} />,
+  th: ({ node: _n, ...p }) => <th className="border border-border bg-secondary/50 px-3 py-1.5 text-left font-semibold" {...p} />,
+  td: ({ node: _n, ...p }) => <td className="border border-border px-3 py-1.5" {...p} />,
   // eslint-disable-next-line @next/next/no-img-element
   img: ({ src, alt }) => <img src={typeof src === 'string' ? src : ''} alt={alt ?? ''} loading="lazy" className="mt-4 max-w-full rounded-lg" />,
   pre: ({ children }) => <>{children}</>,

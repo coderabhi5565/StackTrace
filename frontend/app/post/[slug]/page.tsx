@@ -3,6 +3,7 @@ import { ArrowLeft, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
+import { CoverImage } from '@/components/cover-image'
 import { Markdown } from '@/components/markdown'
 import { Comments } from '@/components/post/comments'
 import { EngagementBar } from '@/components/post/engagement-bar'
@@ -82,10 +83,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           </div>
         </header>
 
-        {post.coverImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- user-supplied host, see next.config images note
-          <img src={post.coverImageUrl} alt="" className="mt-6 aspect-[2/1] w-full rounded-xl object-cover" />
-        )}
+        {post.coverImageUrl && <CoverImage src={post.coverImageUrl} priority />}
 
         <div className="mt-8">
           <Markdown source={post.content} />

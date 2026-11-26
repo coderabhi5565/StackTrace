@@ -65,3 +65,16 @@ EXPLAIN after:
   revalidation on edit); personal data is loaded by small client islands; the editor and markdown
   preview are code-split; independent requests run in parallel (`Promise.all`, no waterfalls);
   `next/link` prefetches in production.
+
+## Frontend (Lighthouse 12, mobile emulation, production build)
+
+| Page | Performance | Accessibility | Best practices | SEO |
+|---|---|---|---|---|
+| `/` | 92 → **96** | 100 | 96 → **100** | 100 |
+| `/home` | 88 → **94** | 100 | 96 → **100** | 100 |
+| `/post/[slug]` | 91 → **94** | 96 → **100** | 96 → **100** | 100 |
+| `/leaderboard` | **91** | 100 | 100 | 100 |
+
+Fixes from the first audit: Vercel Analytics now loads only on Vercel (it 404'd elsewhere), a real app
+icon (favicon 404), a react-markdown `node` prop leaking into the DOM, `<p>` inside a `<ul>`, a modern
+`browserslist` (no legacy polyfills), and `next/image` for cover images from allowed hosts.
