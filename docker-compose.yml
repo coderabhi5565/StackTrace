@@ -1,0 +1,140 @@
+# Full StackTrace stack for local use:   docker compose up --build
+#   Frontend: http://localhost:3000     API gateway: http://localhost:8080
+#
+# The defaults below are for LOCAL DEVELOPMENT ONLY. For anything shared, copy .env.example to .env
+# and set real secrets (docker compose reads .env automatically).
+
+x-java-service: &java-service
+  restart: unless-stopped
+  mem_limit: 512m
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+x-common-env: &common-env
+  SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+  JWT_SECRET: ${JWT_SECRET:-local-dev-only-jwt-secret-change-me-0123456789abcdef}
+  INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-local-dev-only-internal-token}
+  DB_USERNAME: ${POSTGRES_USER:-postgres}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+  REDIS_URL: redis://redis:6379
+  USER_SERVICE_URL: http://user-service:8081
+  POST_SERVICE_URL: http://post-service:8082
+  COMMENT_SERVICE_URL: http://comment-service:8083
+  SEARCH_SERVICE_URL: http://search-service:8084
+  NOTIFICATION_SERVICE_URL: http://notification-service:8085
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d notificationdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  user-service:
+    <<: *java-service
+    build: ./backend/User-Service
+    environment:
+      <<: *common-env
+      PORT: 8081
+      DB_URL: jdbc:postgresql://postgres:5432/userdb
+
+  post-service:
+    <<: *java-service
+    build: ./backend/post-service
+    environment:
+      <<: *common-env
+      PORT: 8082
+      DB_URL: jdbc:postgresql://postgres:5432/postdb
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+
+  comment-service:
+    <<: *java-service
+    build: ./backend/comment-service
+    environment:
+      <<: *common-env
+      PORT: 8083
+      DB_URL: jdbc:postgresql://postgres:5432/commentdb
+
+  search-service:
+    <<: *java-service
+    build: ./backend/search-service
+    environment:
+      <<: *common-env
+      PORT: 8084
+
+  notification-service:
+    <<: *java-service
+    build: ./backend/NotificationService
+    environment:
+      <<: *common-env
+      PORT: 8085
+      DB_URL: jdbc:postgresql://postgres:5432/notificationdb
+
+  gateway:
+    <<: *java-service
+    build: ./backend/api-gateway
+    environment:
+      <<: *common-env
+      PORT: 8080
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    depends_on:
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      post-service:
+        condition: service_healthy
+      comment-service:
+        condition: service_healthy
+      search-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_BASE_URL: http://gateway:8080
+    restart: unless-stopped
+    mem_limit: 384m
+    environment:
+      API_BASE_URL: http://gateway:8080
+      # plain http on localhost; production (https) must keep Secure cookies
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    depends_on:
+      gateway:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
+volumes:
+  pgdata:
