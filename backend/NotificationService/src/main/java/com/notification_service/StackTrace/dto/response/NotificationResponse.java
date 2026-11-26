@@ -18,10 +18,14 @@ public class NotificationResponse {
 
     private Long senderId;
 
+    /** Sender details (null if user-service is unavailable). */
+    private ActorSummary sender;
+
     private NotificationType type;
 
     private String message;
 
+    /** COMMENT/REPLY: post id. FOLLOW: follower id. */
     private Long referenceId;
 
     private Boolean isRead;

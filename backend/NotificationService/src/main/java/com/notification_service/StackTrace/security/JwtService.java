@@ -1,12 +1,16 @@
 package com.notification_service.StackTrace.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Service
 public class JwtService {
@@ -14,47 +18,27 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String jwtSecretKey;
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecretKey.getBytes());
+    private SecretKey signingKey;
+
+    @PostConstruct
+    void init() {
+        byte[] bytes = jwtSecretKey.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length < 32) {
+            throw new IllegalStateException("JWT_SECRET must be at least 32 bytes");
+        }
+        signingKey = Keys.hmacShaKeyFor(bytes);
     }
 
-    public Claims extractClaims(String token) {
-
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-    }
-
-    public boolean isTokenValid(String token) {
-
+    public Optional<Long> validateAndGetUserId(String token) {
         try {
-
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
-
-            return true;
-
-        } catch (Exception e) {
-            return false;
+            Claims claims = Jwts.parser().verifyWith(signingKey).requireIssuer("stacktrace").build()
+                    .parseSignedClaims(token).getPayload();
+            if (!"access".equals(claims.get("typ", String.class))) {
+                return Optional.empty();
+            }
+            return Optional.ofNullable(claims.get("userId", Number.class)).map(Number::longValue);
+        } catch (JwtException | IllegalArgumentException e) {
+            return Optional.empty();
         }
     }
-
-    public Long extractUserId(String token) {
-
-        Claims claims = extractClaims(token);
-
-        Number userId = claims.get("userId", Number.class);
-
-        return userId.longValue();
-    }
-
-    public String extractEmail(String token) {
-
-        return extractClaims(token).getSubject();
-    }
-
 }

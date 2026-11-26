@@ -35,6 +35,7 @@ public class Notification {
     private Long referenceId;
 
     @Builder.Default
+    @Column(nullable = false)
     private Boolean isRead = false;
 
     private LocalDateTime createdAt;
