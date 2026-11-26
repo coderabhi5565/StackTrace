@@ -1,0 +1,12 @@
+# Root build context is only used by deploy/bundle/Dockerfile (backend services).
+**/node_modules
+**/.next
+**/target
+frontend
+e2e
+loadtest
+docs
+.git
+.github
+**/.env
+**/.env.*
