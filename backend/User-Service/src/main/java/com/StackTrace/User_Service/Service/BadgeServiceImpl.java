@@ -108,9 +108,8 @@ public class BadgeServiceImpl
                 .icon(
                         badge.getIcon()
                 )
-                .earnedAt(
-                        userBadge.getEarnedAt()
-                )
+                .earnedAt(userBadge.getEarnedAt() == null ? null
+                        : userBadge.getEarnedAt().toInstant(java.time.ZoneOffset.UTC))
                 .build();
     }
 }

@@ -43,7 +43,7 @@ public class ProfileReader {
                 .avatarUrl(u.getAvatarUrl())
                 .points(u.getPoints())
                 .location(u.getLocation())
-                .joinedAt(u.getCreatedAt())
+                .joinedAt(u.getCreatedAt() == null ? null : u.getCreatedAt().toInstant(java.time.ZoneOffset.UTC))
                 .rank(up.countWithMorePoints(u.getPoints()) + 1)
                 .followersCount(fp.countByFollowingId(u.getId()))
                 .followingCount(fp.countByFollowerId(u.getId()))

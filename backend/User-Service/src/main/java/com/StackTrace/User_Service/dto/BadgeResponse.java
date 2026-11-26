@@ -2,7 +2,7 @@ package com.StackTrace.User_Service.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -19,5 +19,5 @@ public class BadgeResponse {
 
     private String icon;
 
-    private LocalDateTime earnedAt;
+    private Instant earnedAt;
 }
