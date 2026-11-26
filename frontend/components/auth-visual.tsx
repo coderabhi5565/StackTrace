@@ -1,4 +1,4 @@
-import { Clock, Eye, Sparkles } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { Logo } from '@/components/logo'
 
 const floatingCards = [
@@ -6,19 +6,19 @@ const floatingCards = [
     lang: 'java',
     code: '@RestController\npublic class ApiController {\n  @GetMapping("/health")\n  String ok() { return "200 OK"; }\n}',
     title: 'Building resilient REST APIs',
-    meta: '8 min · 24.3k views',
+    meta: '8 min read',
   },
   {
     lang: 'python',
     code: 'def quicksort(a):\n  if len(a) <= 1: return a\n  p = a[len(a)//2]\n  return quicksort([x for x in a if x < p])',
     title: 'Sorting algorithms, visualized',
-    meta: '6 min · 31.2k views',
+    meta: '6 min read',
   },
   {
     lang: 'typescript',
     code: 'type Result<T> =\n  | { ok: true; value: T }\n  | { ok: false; error: string }',
     title: 'Type-safe error handling',
-    meta: '5 min · 18.7k views',
+    meta: '5 min read',
   },
 ]
 
@@ -63,15 +63,7 @@ export function AuthVisual() {
             <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="size-3" />
-                {card.meta.split(' · ')[0]}
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="size-3" />
-                {card.meta.split(' · ')[1]}
-              </span>
-              <span className="flex items-center gap-1 text-primary">
-                <Sparkles className="size-3" />
-                Quiz
+                {card.meta}
               </span>
             </div>
           </div>

@@ -1,66 +1,41 @@
-'use client'
-
-import { Bookmark, Clock, Eye, Sparkles } from 'lucide-react'
+import { Clock, Heart, MessageSquare, PenLine } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
-import { toast } from 'sonner'
+import { BookmarkButton } from '@/components/bookmark-button'
 import { TagPill } from '@/components/tag-pill'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import type { Article } from '@/lib/mock-data'
-import { cn } from '@/lib/utils'
+import { UserAvatar } from '@/components/user-avatar'
+import type { PostSummary } from '@/lib/api/types'
+import { timeAgo } from '@/lib/format'
 
-export function ArticleCard({ article }: { article: Article }) {
-  const [following, setFollowing] = useState(false)
-  const [bookmarked, setBookmarked] = useState(article.bookmarked)
-
-  function toggleFollow(e: React.MouseEvent) {
-    e.preventDefault()
-    setFollowing((f) => !f)
-    toast.success(following ? `Unfollowed @${article.author.username}` : `Following @${article.author.username}`)
-  }
-
-  function toggleBookmark(e: React.MouseEvent) {
-    e.preventDefault()
-    setBookmarked((b) => !b)
-    toast.success(bookmarked ? 'Removed from bookmarks' : 'Saved to bookmarks')
-  }
+export function ArticleCard({ article, showStatus = false }: { article: PostSummary; showStatus?: boolean }) {
+  const published = article.status === 'PUBLISHED'
+  const href = published ? `/post/${article.slug}` : `/edit/${article.id}`
 
   return (
     <article className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40">
       <div className="flex items-center justify-between gap-2">
-        <Link
-          href={`/profile/${article.author.username}`}
-          className="flex items-center gap-2.5"
-        >
-          <Avatar className="size-9 border border-border">
-            <AvatarImage src={article.author.avatar} alt={article.author.name} />
-            <AvatarFallback>{article.author.name[0]}</AvatarFallback>
-          </Avatar>
+        <Link href={`/profile/${article.author.username}`} className="flex items-center gap-2.5" prefetch={false}>
+          <UserAvatar user={article.author} />
           <div className="leading-tight">
             <p className="text-sm font-medium">{article.author.name}</p>
             <p className="text-xs text-muted-foreground">
-              @{article.author.username} · {article.postedAt}
+              @{article.author.username} · {timeAgo(article.publishedAt ?? article.createdAt)}
             </p>
           </div>
         </Link>
-        <Button
-          size="sm"
-          variant={following ? 'secondary' : 'outline'}
-          className="h-8 rounded-full text-xs"
-          onClick={toggleFollow}
-        >
-          {following ? 'Following' : 'Follow'}
-        </Button>
+        {showStatus && !published && (
+          <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
+            {article.status === 'SCHEDULED' ? 'Scheduled' : 'Draft'}
+          </span>
+        )}
       </div>
 
-      <Link href={`/post/${article.slug}`} className="mt-4 block">
+      <Link href={href} className="mt-4 block">
         <h2 className="text-pretty text-xl font-bold leading-snug tracking-tight transition-colors group-hover:text-primary">
           {article.title}
         </h2>
-        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-          {article.description}
-        </p>
+        {article.excerpt && (
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{article.excerpt}</p>
+        )}
       </Link>
 
       <div className="mt-4 flex flex-wrap gap-1.5">
@@ -75,26 +50,22 @@ export function ArticleCard({ article }: { article: Article }) {
             <Clock className="size-3.5" />
             {article.readingTime} min read
           </span>
-          <span className="flex items-center gap-1">
-            <Eye className="size-3.5" />
-            {article.views.toLocaleString()}
+          <span className="flex items-center gap-1" aria-label={`${article.likeCount} likes`}>
+            <Heart className="size-3.5" />
+            {article.likeCount}
           </span>
-          {article.hasQuiz && (
-            <span className="hidden items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-primary sm:flex">
-              <Sparkles className="size-3" />
-              Quiz
-            </span>
-          )}
+          <span className="flex items-center gap-1" aria-label={`${article.commentCount} comments`}>
+            <MessageSquare className="size-3.5" />
+            {article.commentCount}
+          </span>
         </div>
-        <button
-          onClick={toggleBookmark}
-          aria-label="Bookmark"
-          className="rounded-md p-1 transition-colors hover:text-primary"
-        >
-          <Bookmark
-            className={cn('size-4', bookmarked && 'fill-primary text-primary')}
-          />
-        </button>
+        {published ? (
+          <BookmarkButton postId={article.id} />
+        ) : (
+          <Link href={`/edit/${article.id}`} className="flex items-center gap-1 hover:text-primary">
+            <PenLine className="size-3.5" /> Edit
+          </Link>
+        )}
       </div>
     </article>
   )

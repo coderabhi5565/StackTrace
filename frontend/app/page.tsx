@@ -1,102 +1,97 @@
-'use client'
-
-import { Code } from 'lucide-react'
+import { ArrowRight, BookOpen, MessageSquare, Search, Trophy } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { AuthVisual } from '@/components/auth-visual'
+import { ArticleCard } from '@/components/article-card'
 import { Logo } from '@/components/logo'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { buttonVariants } from '@/components/ui/button'
+import { apiGetSafe } from '@/lib/api/server'
+import type { Page, PostSummary } from '@/lib/api/types'
+import { cn } from '@/lib/utils'
 
-export default function LoginPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+// Public marketing page: statically generated and refreshed every minute (ISR).
+export const revalidate = 60
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    toast.success('Welcome back!')
-    setTimeout(() => router.push('/home'), 600)
-  }
+const features = [
+  { icon: BookOpen, title: 'Write in Markdown', text: 'Code blocks, tables and live preview, with drafts and one-click publishing.' },
+  { icon: MessageSquare, title: 'Threaded discussions', text: 'Nested comments and replies keep technical conversations readable.' },
+  { icon: Search, title: 'Find anything', text: 'Full-text search across every article and developer.' },
+  { icon: Trophy, title: 'Earn reputation', text: 'Points and badges for publishing and for the likes your work receives.' },
+]
+
+export default async function LandingPage() {
+  const emptyPage: Page<PostSummary> = { content: [], page: 0, size: 0, totalElements: 0, totalPages: 0, last: true }
+  const trending = await apiGetSafe<Page<PostSummary>>('/api/posts/trending?size=3', emptyPage, { revalidate: 60, tags: ['posts'] })
+  const posts = trending.content.length
+    ? trending.content
+    : (await apiGetSafe<Page<PostSummary>>('/api/posts?size=3', emptyPage, { revalidate: 60, tags: ['posts'] })).content
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[2fr_3fr]">
-      {/* Left - form (40%) */}
-      <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16">
-        <div className="mx-auto w-full max-w-sm">
-          <Logo href="/home" className="mb-10" />
+    <div className="min-h-screen bg-background">
+      <header className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-6">
+        <Logo href="/" />
+        <nav className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link href="/home" className={buttonVariants({ variant: 'ghost' })}>
+            Explore
+          </Link>
+          <Link href="/login" className={buttonVariants({ variant: 'ghost' })}>
+            Sign in
+          </Link>
+          <Link href="/register" className={cn(buttonVariants(), 'rounded-full')}>
+            Join
+          </Link>
+        </nav>
+      </header>
 
-          <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Continue your developer journey
+      <main>
+        <section className="mx-auto max-w-4xl px-4 pb-16 pt-20 text-center md:pt-28">
+          <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-6xl">
+            Where developers <span className="text-primary">write, learn</span> and grow
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-muted-foreground">
+            Publish technical articles, follow the engineers you learn from, and build a reputation in a community
+            that values deep, practical knowledge.
           </p>
-
-          <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                placeholder="you@dev.com"
-                defaultValue="jordan@dev.com"
-                className="h-11"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="/" className="text-xs text-primary hover:underline">
-                  Forgot?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                required
-                placeholder="••••••••"
-                defaultValue="password"
-                className="h-11"
-              />
-            </div>
-
-            <Button type="submit" disabled={loading} className="mt-2 h-11 font-medium">
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </form>
-
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <Button
-            variant="outline"
-            className="h-11 w-full font-medium"
-            onClick={() => {
-              toast.success('Welcome back!')
-              setTimeout(() => router.push('/home'), 600)
-            }}
-          >
-            <Code className="size-4" />
-            Continue with GitHub
-          </Button>
-
-          <p className="mt-8 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-medium text-primary hover:underline">
-              Register
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/register" className={cn(buttonVariants({ size: 'lg' }), 'h-11 rounded-full px-6')}>
+              Start writing <ArrowRight className="size-4" />
             </Link>
-          </p>
-        </div>
-      </div>
+            <Link href="/home" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 rounded-full px-6')}>
+              Read articles
+            </Link>
+          </div>
+        </section>
 
-      {/* Right - visual (60%) */}
-      <AuthVisual />
+        <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-20 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((f) => (
+            <div key={f.title} className="rounded-xl border border-border bg-card p-5">
+              <f.icon className="size-5 text-primary" />
+              <h2 className="mt-3 font-semibold">{f.title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{f.text}</p>
+            </div>
+          ))}
+        </section>
+
+        {posts.length > 0 && (
+          <section className="mx-auto max-w-6xl px-4 pb-24">
+            <div className="mb-5 flex items-end justify-between">
+              <h2 className="text-2xl font-bold tracking-tight">Trending on StackTrace</h2>
+              <Link href="/home?tab=trending" className="text-sm text-primary hover:underline">
+                See all
+              </Link>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {posts.map((p) => (
+                <ArticleCard key={p.id} article={p} />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+
+      <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
+        StackTrace · built by developers, for developers
+      </footer>
     </div>
   )
 }

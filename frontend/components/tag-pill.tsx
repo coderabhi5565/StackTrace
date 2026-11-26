@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { TAG_COLORS } from '@/lib/mock-data'
+import { TAG_COLORS } from '@/lib/tags'
 import { cn } from '@/lib/utils'
 
 export function TagPill({
@@ -23,7 +23,7 @@ export function TagPill({
   }
 
   return (
-    <Link href={`/search?q=${tag}&tab=tags`} className={classes}>
+    <Link href={`/home?tag=${encodeURIComponent(tag)}`} className={classes} prefetch={false}>
       #{tag}
     </Link>
   )

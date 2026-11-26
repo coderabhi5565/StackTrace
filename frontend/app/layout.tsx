@@ -12,10 +12,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
   title: 'StackTrace — Where developers write, learn and grow',
-  description:
-    'A developer blog platform where developers write, read and learn through technical articles, runnable code, and quizzes.',
-  generator: 'v0.app',
+  description: 'A developer platform to publish technical articles, follow developers, discuss and earn reputation.',
 }
 
 export default function RootLayout({
