@@ -15,3 +15,4 @@
 | 2026-11-26 | Phase 2: indexes (all services), Redis caching (posts, feed, trending, tags, authors, profiles, leaderboard), virtual threads, Hikari | ✅ | EXPLAIN, Testcontainers Redis test, smoke test 34/34 |
 | 2026-11-26 | Phase 2: k6 before/after (`docs/PERFORMANCE.md`): baseline saturates at 1000 req/s (p95 ~350 ms), optimized p95 < 15 ms | ✅ | k6 |
 | 2026-11-26 | Phase 2: frontend Lighthouse 91-96 perf, 100 a11y/best practices/SEO | ✅ | Lighthouse |
+| 2026-11-26 | Phase 3: actuator liveness/readiness, ECS JSON logs + no API docs under `prod`, gateway and frontend security headers (CSP), `.env.example` everywhere, `docs/SECURITY.md` | ✅ | prod profile run: probes UP, `/v3/api-docs` 404, JSON logs; smoke 34/34; BFF journey |
