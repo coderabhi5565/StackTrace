@@ -16,3 +16,5 @@
 | 2026-11-26 | Phase 2: k6 before/after (`docs/PERFORMANCE.md`): baseline saturates at 1000 req/s (p95 ~350 ms), optimized p95 < 15 ms | ✅ | k6 |
 | 2026-11-26 | Phase 2: frontend Lighthouse 91-96 perf, 100 a11y/best practices/SEO | ✅ | Lighthouse |
 | 2026-11-26 | Phase 3: actuator liveness/readiness, ECS JSON logs + no API docs under `prod`, gateway and frontend security headers (CSP), `.env.example` everywhere, `docs/SECURITY.md` | ✅ | prod profile run: probes UP, `/v3/api-docs` 404, JSON logs; smoke 34/34; BFF journey |
+| 2026-11-26 | Phase 4: multi-stage Dockerfiles (non-root, JRE alpine), `docker-compose.yml`, CI (tests, e2e, GHCR), Fly.io configs + deploy script, budget bundle image, `docs/DEPLOY.md`, README | ✅ | `docker compose up --build --wait` → smoke 34/34 + headless-Chrome UI test; bundle: 6 JVMs in 1 GiB at 200 req/s, 0% errors |
+| 2026-11-26 | Bugs found by E2E: UTC timestamps (comment times off by the server offset), counters wording | ✅ fixed | UI test + screenshots |
