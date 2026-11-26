@@ -4,6 +4,7 @@ import com.StackTrace.User_Service.Repository.FollowRepository;
 import com.StackTrace.User_Service.Repository.SkillRepository;
 import com.StackTrace.User_Service.Repository.UserRepository;
 import com.StackTrace.User_Service.Security.CurrentUser;
+import com.StackTrace.User_Service.client.NotificationClient;
 import com.StackTrace.User_Service.dto.*;
 import com.StackTrace.User_Service.exception.*;
 import com.StackTrace.User_Service.model.Follow;
@@ -36,6 +37,7 @@ public class UserService {
     private final SkillRepository sp;
     private final RefreshTokenService refreshTokens;
     private final BadgeService badgeService;
+    private final NotificationClient notifications;
 
     /** Used to keep login timing similar whether or not the email exists. */
     private String dummyHash;
@@ -197,6 +199,7 @@ public class UserService {
             throw new AlreadyFollowingException("Already following this user");
         }
         fp.save(Follow.builder().followerId(me).followingId(targetId).build());
+        notifications.followedAfterCommit(me, targetId);
         return ApiResponse.builder().success(true).message("User followed successfully").build();
     }
 
