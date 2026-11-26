@@ -6,19 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 @Entity
-@Table(
-        name = "tags",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_tag_name",
-                        columnNames = "name"
-                )
-        }
-)
+@Table(name = "tags")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -40,6 +29,7 @@ public class Tag extends BaseEntity {
     @Column(nullable = false, unique = true, length = 50)
     private String name;
 
-    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
-    private Set<Post> posts = new LinkedHashSet<>();
+    public Tag(String name) {
+        this.name = name;
+    }
 }

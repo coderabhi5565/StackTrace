@@ -6,26 +6,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(
-        name = "posts",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_post_slug",
-                        columnNames = "slug"
-                )
-        },
-        indexes = {
-                @Index(name = "idx_post_author_id", columnList = "authorId"),
-                @Index(name = "idx_post_status", columnList = "status"),
-                @Index(name = "idx_post_published_at", columnList = "publishedAt")
-        }
-)
+@Table(name = "posts")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -47,7 +35,7 @@ public class Post extends BaseEntity {
     @Column(nullable = false, length = 250)
     private String title;
 
-    @Column(nullable = false, length = 300)
+    @Column(nullable = false, length = 300, unique = true)
     private String slug;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -57,13 +45,11 @@ public class Post extends BaseEntity {
     private String coverImageUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private PostStatus status = PostStatus.DRAFT;
 
     @Column(nullable = false)
     private Long authorId;
-
-    private Instant scheduledAt;
 
     private Instant publishedAt;
 
@@ -72,13 +58,26 @@ public class Post extends BaseEntity {
     @Column(length = 300)
     private String excerpt;
 
+    /** Estimated minutes to read (words / 200, at least 1). */
+    @Column(nullable = false)
+    private int readingTime = 1;
+
+    /** Denormalized counters, updated atomically; drive the trending score. */
+    @Column(nullable = false)
+    private int likeCount;
+
+    @Column(nullable = false)
+    private int commentCount;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "post_tag",
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
+    @BatchSize(size = 50)
     private Set<Tag> tags = new LinkedHashSet<>();
+
     @Column(name = "scheduled_publish_at")
     private Instant scheduledPublishAt;
 }
