@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [User-Service, post-service, comment-service, search-service, NotificationService, api-gateway]
+    defaults:
+      run:
+        working-directory: backend/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/${{ matrix.service }}/pom.xml
+      # unit + Testcontainers integration tests (Postgres/Redis run in Docker on the runner)
+      - run: mvn -B -ntp verify
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -- --max-warnings 0
+      - run: npx tsc --noEmit
+      - run: npm run build
+        env:
+          API_BASE_URL: http://localhost:8080
+
+  e2e:
+    name: end-to-end (docker compose)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the full stack
+        run: docker compose up --build --detach --wait --wait-timeout 600
+      - name: API smoke test
+        run: ./scripts/smoke-test.sh http://localhost:8080
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Browser test (Google Chrome is preinstalled on the runner)
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund && BASE=http://localhost:3000 npm test
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+      - if: always()
+        run: docker compose down -v
+
+  images:
+    name: publish image (${{ matrix.name }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - { name: user-service, context: backend/User-Service }
+          - { name: post-service, context: backend/post-service }
+          - { name: comment-service, context: backend/comment-service }
+          - { name: search-service, context: backend/search-service }
+          - { name: notification-service, context: backend/NotificationService }
+          - { name: gateway, context: backend/api-gateway }
+          - { name: frontend, context: frontend }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image name (GHCR requires lowercase)
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/stacktrace-${{ matrix.name }}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
