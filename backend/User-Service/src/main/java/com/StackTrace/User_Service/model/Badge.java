@@ -23,4 +23,8 @@ public class Badge {
     private String description;
 
     private String icon;
+
+    /** Badge is auto-awarded once a user's points reach this value (null = manual only). */
+    @Column(name = "points_threshold")
+    private Integer pointsThreshold;
 }
