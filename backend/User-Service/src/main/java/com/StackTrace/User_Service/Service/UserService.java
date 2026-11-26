@@ -10,7 +10,9 @@ import com.StackTrace.User_Service.exception.*;
 import com.StackTrace.User_Service.model.Follow;
 import com.StackTrace.User_Service.model.Skill;
 import com.StackTrace.User_Service.model.User;
+import com.StackTrace.User_Service.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,6 +40,7 @@ public class UserService {
     private final RefreshTokenService refreshTokens;
     private final BadgeService badgeService;
     private final NotificationClient notifications;
+    private final ProfileReader profiles;
 
     /** Used to keep login timing similar whether or not the email exists. */
     private String dummyHash;
@@ -120,19 +123,19 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserProfileResponse getUser(Long id) {
-        return toProfile(findUser(id));
+        return profiles.profile(id);
     }
 
     @Transactional(readOnly = true)
     public UserProfileResponse getUserByUsername(String username) {
         User u = up.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new UserNotFoundException("User Does Not Exist"));
-        return toProfile(u);
+        return profiles.profile(u.getId());
     }
 
     @Transactional(readOnly = true)
     public UserProfileResponse me() {
-        return toProfile(findUser(CurrentUser.id()));
+        return profiles.profile(CurrentUser.id());
     }
 
     @Transactional
@@ -150,25 +153,9 @@ public class UserService {
         if (ur.getLocation() != null) {
             u.setLocation(ur.getLocation());
         }
-        return toProfile(up.save(u));
-    }
-
-    private UserProfileResponse toProfile(User u) {
-        return UserProfileResponse.builder()
-                .id(u.getId())
-                .name(u.getName())
-                .username(u.getUsername())
-                .bio(u.getBio())
-                .avatarUrl(u.getAvatarUrl())
-                .points(u.getPoints())
-                .location(u.getLocation())
-                .joinedAt(u.getCreatedAt())
-                .rank(up.countWithMorePoints(u.getPoints()) + 1)
-                .followersCount(fp.countByFollowingId(u.getId()))
-                .followingCount(fp.countByFollowerId(u.getId()))
-                .skills(skillsOf(u.getId()))
-                .badges(badgeService.getUserBadges(u.getId()))
-                .build();
+        up.save(u);
+        profiles.evict(u.getId());
+        return profiles.profile(u.getId());
     }
 
     private User findUser(Long id) {
@@ -183,7 +170,8 @@ public class UserService {
         up.addPoints(userId, delta);
         User u = findUser(userId);
         badgeService.awardThresholdBadges(u);
-        return toProfile(u);
+        profiles.evict(userId);
+        return profiles.profile(userId);
     }
 
     // ---------------------------------------------------------------- follow
@@ -200,6 +188,7 @@ public class UserService {
         }
         fp.save(Follow.builder().followerId(me).followingId(targetId).build());
         notifications.followedAfterCommit(me, targetId);
+        profiles.evict(me, targetId);
         return ApiResponse.builder().success(true).message("User followed successfully").build();
     }
 
@@ -210,6 +199,7 @@ public class UserService {
         Follow follow = fp.findByFollowerIdAndFollowingId(me, targetId)
                 .orElseThrow(() -> new BusinessException("Follow relationship not found"));
         fp.delete(follow);
+        profiles.evict(me, targetId);
         return ApiResponse.builder().success(true).message("User unfollowed successfully").build();
     }
 
@@ -238,6 +228,7 @@ public class UserService {
     // ---------------------------------------------------------------- leaderboard
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.LEADERBOARD, key = "#page + ':' + #size")
     public PagedResponse<LeaderboardResponse> getLeaderboard(int page, int size) {
         PageRequest pageable = pageable(page, size);
         Page<User> users = up.findAllByOrderByPointsDescIdAsc(pageable);
@@ -273,6 +264,7 @@ public class UserService {
             throw new SkillAlreadyExistsException("Skill already exists");
         }
         Skill savedSkill = sp.save(Skill.builder().userId(me).skillName(name).build());
+        profiles.evict(me);
         return SkillResponse.builder().id(savedSkill.getId()).skillName(savedSkill.getSkillName()).build();
     }
 
@@ -296,6 +288,7 @@ public class UserService {
             throw new AccessDeniedException("You cannot delete another user's skill");
         }
         sp.delete(skill);
+        profiles.evict(me);
         return ApiResponse.builder().success(true).message("Skill deleted successfully").build();
     }
 
