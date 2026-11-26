@@ -91,7 +91,8 @@ public class NotificationServiceImpl implements NotificationService {
                 .message(notification.getMessage())
                 .referenceId(notification.getReferenceId())
                 .isRead(notification.getIsRead())
-                .createdAt(notification.getCreatedAt())
+                .createdAt(notification.getCreatedAt() == null ? null
+                        : notification.getCreatedAt().toInstant(java.time.ZoneOffset.UTC))
                 .build();
     }
 }

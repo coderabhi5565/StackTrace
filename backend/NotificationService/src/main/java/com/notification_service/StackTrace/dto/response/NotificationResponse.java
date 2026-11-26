@@ -3,7 +3,7 @@ package com.notification_service.StackTrace.dto.response;
 import com.notification_service.StackTrace.enums.NotificationType;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -30,5 +30,5 @@ public class NotificationResponse {
 
     private Boolean isRead;
 
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 }
