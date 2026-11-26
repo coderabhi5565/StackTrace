@@ -1,10 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // Self-contained server bundle for the Docker image (ignored by Vercel).
+  output: 'standalone',
+  poweredByHeader: false,
   images: {
-    unoptimized: true,
+    // Remote images are restricted to known hosts so the optimizer is not an open proxy.
+    remotePatterns: [
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+    ],
   },
 }
 
