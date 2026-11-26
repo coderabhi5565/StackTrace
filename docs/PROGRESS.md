@@ -10,4 +10,5 @@
 | 2026-11-26 | notification-service: IDOR fixed, Flyway, paging | ✅ | Testcontainers tests |
 | 2026-11-26 | api-gateway: routing, CORS, Redis rate limiting | ✅ | tests over real HTTP |
 | 2026-11-26 | Full backend through gateway | ✅ | `scripts/smoke-test.sh` — 34/34 checks |
-| | Frontend wired to real API | 🚧 | |
+| 2026-11-26 | Frontend wired to real API, mock data removed, BFF cookie auth | ✅ | tsc + eslint clean, `next build`, scripted journey through the BFF (register, publish, comment, like, bookmark, follow, search, refresh, logout) |
+| 2026-11-26 | Phase 1 complete; k6 baseline recorded (`docs/PERFORMANCE.md`) | ✅ | k6 |
