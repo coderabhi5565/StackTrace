@@ -3,7 +3,7 @@ package com.stacktrace.comment_service.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,8 +19,8 @@ public class CommentResponse {
     private Long parentCommentId;
     private boolean deleted;
     private boolean edited;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     @Builder.Default
     private List<CommentResponse> replies = new ArrayList<>();
 }

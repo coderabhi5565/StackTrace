@@ -7,6 +7,9 @@ import com.stacktrace.comment_service.dto.response.CommentResponse;
 import com.stacktrace.comment_service.entity.Comment;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 @Component
@@ -35,9 +38,13 @@ public class CommentMapper {
                 .deleted(deleted)
                 .edited(!deleted && comment.getUpdatedAt() != null && comment.getCreatedAt() != null
                         && comment.getUpdatedAt().isAfter(comment.getCreatedAt().plusSeconds(1)))
-                .createdAt(comment.getCreatedAt())
-                .updatedAt(comment.getUpdatedAt())
+                .createdAt(utc(comment.getCreatedAt()))
+                .updatedAt(utc(comment.getUpdatedAt()))
                 .build();
+    }
+
+    private static Instant utc(LocalDateTime t) {
+        return t == null ? null : t.toInstant(ZoneOffset.UTC);
     }
 
     public void updateEntity(Comment comment, UpdateCommentRequest request) {
