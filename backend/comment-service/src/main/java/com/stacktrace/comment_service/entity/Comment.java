@@ -7,8 +7,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "comments")
@@ -37,9 +35,9 @@ public class Comment {
     @JoinColumn(name = "parent_comment_id")
     private Comment parentComment;
 
-    @OneToMany(mappedBy = "parentComment", fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Comment> replies = new ArrayList<>();
+    /** Id of the top-level comment of this thread (null for top-level comments). Loads a thread in one query. */
+    @Column(name = "root_comment_id")
+    private Long rootCommentId;
 
     private LocalDateTime deletedAt;
 
@@ -50,4 +48,9 @@ public class Comment {
     @LastModifiedDate
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    /** Thread id: the comment itself if top-level, its root otherwise. */
+    public Long threadId() {
+        return rootCommentId != null ? rootCommentId : id;
+    }
 }

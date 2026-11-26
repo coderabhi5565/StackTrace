@@ -1,15 +1,17 @@
 package com.stacktrace.comment_service.dto.response;
 
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.Instant;
 import java.util.Map;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ErrorResponse(
-
-        LocalDateTime timestamp,
+        Instant timestamp,
         int status,
         String error,
         String message,
+        String path,
         Map<String, String> validationErrors
-
 ) {
 }

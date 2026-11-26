@@ -1,9 +1,12 @@
 package com.stacktrace.comment_service.client;
 
+import com.stacktrace.comment_service.dto.request.CountDeltaRequest;
 import com.stacktrace.comment_service.dto.response.AuthorResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
         name = "post-service",
@@ -12,10 +15,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface PostClient {
 
     @GetMapping("/internal/posts/{postId}/exists")
-    boolean exists(@PathVariable Long postId);
+    boolean exists(@PathVariable("postId") Long postId);
 
     @GetMapping("/internal/posts/{postId}/author")
-    AuthorResponse getAuthorId(
-            @PathVariable Long postId
-    );
+    AuthorResponse getAuthorId(@PathVariable("postId") Long postId);
+
+    @PostMapping("/internal/posts/{postId}/comment-count")
+    void adjustCommentCount(@PathVariable("postId") Long postId, @RequestBody CountDeltaRequest request);
 }

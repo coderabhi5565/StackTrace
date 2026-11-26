@@ -12,7 +12,5 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface NotificationClient {
 
     @PostMapping("/internal/notifications")
-    void createNotification(
-            @RequestBody NotificationRequest request
-    );
+    void createNotification(@RequestBody NotificationRequest request);
 }

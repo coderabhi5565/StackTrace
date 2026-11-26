@@ -1,5 +1,6 @@
 package com.stacktrace.comment_service.security;
 
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -8,14 +9,10 @@ import org.springframework.stereotype.Component;
 public class CurrentUserUtil {
 
     public Long getCurrentUserId() {
-
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalStateException("No authenticated user found.");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Long id) {
+            return id;
         }
-
-        return Long.valueOf(authentication.getName());
+        throw new AuthenticationCredentialsNotFoundException("Authentication required");
     }
 }
