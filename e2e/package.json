@@ -1,0 +1,12 @@
+{
+  "name": "stacktrace-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end test of the full stack (uses the locally installed Google Chrome)",
+  "scripts": {
+    "test": "node ui-e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.49.1"
+  }
+}
