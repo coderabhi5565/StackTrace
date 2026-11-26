@@ -23,6 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
+        // every URL comes from the environment in real deployments; tests supply dummies
+        "USER_SERVICE_URL=http://127.0.0.1:1",
+        "DB_URL=jdbc:postgresql://unused/db",
         "jwt.secret=" + StackTraceApplicationTests.SECRET,
         "internal.api-token=test-internal-token-123"
 })

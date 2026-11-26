@@ -22,6 +22,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** Exercises the gateway over real HTTP, the way the frontend BFF talks to it. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        // every URL comes from the environment in real deployments; tests supply dummies
+        "POST_SERVICE_URL=http://127.0.0.1:1",
+        "COMMENT_SERVICE_URL=http://127.0.0.1:1",
+        "SEARCH_SERVICE_URL=http://127.0.0.1:1",
+        "NOTIFICATION_SERVICE_URL=http://127.0.0.1:1",
+        "REDIS_URL=redis://127.0.0.1:6379",
         "jwt.secret=test-secret-test-secret-test-secret-0123456789",
         "CORS_ALLOWED_ORIGINS=https://app.example.com",
         "AUTH_RATE_LIMIT_PER_SECOND=1",

@@ -10,7 +10,7 @@ spring:
     name: api-gateway
   data:
     redis:
-      url: ${REDIS_URL:redis://localhost:6379}
+      url: ${REDIS_URL}
       timeout: 1s
   cloud:
     gateway:
@@ -24,7 +24,7 @@ spring:
             add-to-simple-url-handler-mapping: true
             cors-configurations:
               '[/api/**]':
-                allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+                allowed-origins: ${CORS_ALLOWED_ORIGINS}
                 allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
                 allowed-headers: Authorization,Content-Type,X-Requested-With
                 allow-credentials: true
@@ -43,7 +43,7 @@ spring:
           # Only /api/** is routed. /internal/** is never exposed (no route -> 404).
           routes:
             - id: auth
-              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              uri: ${USER_SERVICE_URL}
               predicates:
                 - Path=/api/auth/**
               filters:
@@ -54,23 +54,23 @@ spring:
                     redis-rate-limiter.burstCapacity: ${AUTH_RATE_LIMIT_BURST:10}
                     key-resolver: "#{@clientIpKeyResolver}"
             - id: users
-              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              uri: ${USER_SERVICE_URL}
               predicates:
                 - Path=/api/users/**,/api/badges/**
             - id: posts
-              uri: ${POST_SERVICE_URL:http://localhost:8082}
+              uri: ${POST_SERVICE_URL}
               predicates:
                 - Path=/api/posts/**,/api/tags/**,/api/uploads/**
             - id: comments
-              uri: ${COMMENT_SERVICE_URL:http://localhost:8083}
+              uri: ${COMMENT_SERVICE_URL}
               predicates:
                 - Path=/api/comments/**
             - id: search
-              uri: ${SEARCH_SERVICE_URL:http://localhost:8084}
+              uri: ${SEARCH_SERVICE_URL}
               predicates:
                 - Path=/api/search/**,/api/search
             - id: notifications
-              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+              uri: ${NOTIFICATION_SERVICE_URL}
               predicates:
                 - Path=/api/notifications/**,/api/notifications
 

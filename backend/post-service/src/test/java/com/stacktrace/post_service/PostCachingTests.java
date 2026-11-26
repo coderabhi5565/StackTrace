@@ -28,6 +28,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** Verifies the Redis cache round-trips our DTOs and that writes evict stale entries. */
 @SpringBootTest(properties = {
+        // every URL comes from the environment in real deployments; tests supply dummies
+        "USER_SERVICE_URL=http://127.0.0.1:1",
+        "REDIS_URL=redis://127.0.0.1:6379",
+        "DB_URL=jdbc:postgresql://unused/db",
         "jwt.secret=" + PostServiceApplicationTests.SECRET,
         "internal.api-token=test-internal-token-123"
 })
