@@ -24,6 +24,17 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Page<Post> findByStatusAndDeletedAtIsNull(PostStatus status, Pageable pageable);
 
+    /** Latest feed. Literal status (not a bind parameter) so the partial feed index is always usable. */
+    @Query(value = """
+            select p from Post p
+            where p.status = com.stacktrace.post_service.enums.PostStatus.PUBLISHED and p.deletedAt is null
+            """,
+            countQuery = """
+            select count(p) from Post p
+            where p.status = com.stacktrace.post_service.enums.PostStatus.PUBLISHED and p.deletedAt is null
+            """)
+    Page<Post> findPublished(Pageable pageable);
+
     @Query(value = """
             select p from Post p join p.tags t
             where t.name = :tag and p.status = com.stacktrace.post_service.enums.PostStatus.PUBLISHED
