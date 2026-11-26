@@ -260,7 +260,8 @@ export function Comments({ postId }: { postId: number }) {
   return (
     <section className="mt-10" id="comments">
       <h2 className="text-xl font-bold tracking-tight">
-        Discussion <span className="text-muted-foreground">({total})</span>
+        Discussion{' '}
+        {total > 0 && <span className="text-muted-foreground">({total} {total === 1 ? 'thread' : 'threads'})</span>}
       </h2>
 
       <div className="mt-4 flex gap-3">

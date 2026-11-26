@@ -24,3 +24,7 @@ export function compact(n: number): string {
 export function initials(name: string | null | undefined): string {
   return (name ?? '?').trim().charAt(0).toUpperCase() || '?'
 }
+
+export function plural(n: number, word: string): string {
+  return `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`
+}

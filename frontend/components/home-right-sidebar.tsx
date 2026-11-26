@@ -2,6 +2,7 @@ import { TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { UserAvatar } from '@/components/user-avatar'
 import { apiGetSafe } from '@/lib/api/server'
+import { plural } from '@/lib/format'
 import type { LeaderboardEntry, Page, PostSummary } from '@/lib/api/types'
 
 const emptyPage = { content: [], page: 0, size: 0, totalElements: 0, totalPages: 0, last: true }
@@ -34,7 +35,7 @@ export async function HomeRightSidebar() {
                       {a.title}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      @{a.author.username} · {a.likeCount} likes · {a.commentCount} comments
+                      @{a.author.username} · {plural(a.likeCount, 'like')} · {plural(a.commentCount, 'comment')}
                     </p>
                   </div>
                 </Link>
