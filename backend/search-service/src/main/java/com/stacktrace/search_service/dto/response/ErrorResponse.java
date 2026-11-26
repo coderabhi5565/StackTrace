@@ -1,18 +1,9 @@
 package com.stacktrace.search_service.dto.response;
 
-import lombok.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
-@Getter
-@Setter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class ErrorResponse {
-    private LocalDateTime timestamp;
-    private int status;
-    private String error;
-    private String message;
-    private String path;
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ErrorResponse(Instant timestamp, int status, String error, String message, String path) {
 }

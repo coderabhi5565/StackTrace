@@ -1,22 +1,11 @@
 package com.stacktrace.search_service.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.util.List;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class SearchResponse {
-
-    private List<PostSearchResponse> posts;
-
-    private List<UserSearchResponse> users;
-
+/**
+ * @param degraded sections that could not be fetched (e.g. ["users"]) — the rest is still returned
+ */
+public record SearchResponse(PageResponse<PostSearchResponse> posts,
+                             PageResponse<UserSearchResponse> users,
+                             List<String> degraded) {
 }
