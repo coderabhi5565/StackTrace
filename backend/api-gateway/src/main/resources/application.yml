@@ -30,6 +30,8 @@ spring:
                 allow-credentials: true
                 max-age: 3600
           default-filters:
+            # X-Content-Type-Options, X-Frame-Options, HSTS, Referrer-Policy, ...
+            - SecureHeaders
             # Clients may never smuggle the service-to-service secret.
             - RemoveRequestHeader=X-Internal-Token
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
@@ -75,6 +77,8 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+server.shutdown: graceful
+
 management:
   endpoints:
     web:
@@ -84,6 +88,7 @@ management:
     health:
       probes:
         enabled: true
+      show-details: never
   health:
     redis:
       enabled: false

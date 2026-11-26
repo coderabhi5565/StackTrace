@@ -9,6 +9,9 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.sun.net.httpserver.HttpServer;
+
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -22,9 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "jwt.secret=test-secret-test-secret-test-secret-0123456789",
         "CORS_ALLOWED_ORIGINS=https://app.example.com",
         "AUTH_RATE_LIMIT_PER_SECOND=1",
-        "AUTH_RATE_LIMIT_BURST=3",
-        // nothing listens here: allowed requests fail downstream (5xx), which is fine for these checks
-        "USER_SERVICE_URL=http://127.0.0.1:9"
+        "AUTH_RATE_LIMIT_BURST=3"
 })
 @Testcontainers
 class ApiGatewayApplicationTests {
@@ -32,9 +33,26 @@ class ApiGatewayApplicationTests {
     @Container
     static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
 
+    /** Stub downstream service: answers every request instantly with 200. */
+    static final HttpServer downstream;
+
+    static {
+        try {
+            downstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            downstream.createContext("/", ex -> {
+                ex.sendResponseHeaders(200, -1);
+                ex.close();
+            });
+            downstream.start();
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry r) {
+    static void props(DynamicPropertyRegistry r) {
         r.add("spring.data.redis.url", () -> "redis://" + redis.getHost() + ":" + redis.getMappedPort(6379));
+        r.add("USER_SERVICE_URL", () -> "http://127.0.0.1:" + downstream.getAddress().getPort());
     }
 
     @LocalServerPort

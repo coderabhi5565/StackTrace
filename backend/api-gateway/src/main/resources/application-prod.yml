@@ -1,0 +1,5 @@
+# Activated with SPRING_PROFILES_ACTIVE=prod
+logging:
+  structured:
+    format:
+      console: ecs
