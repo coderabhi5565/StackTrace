@@ -12,3 +12,6 @@
 | 2026-11-26 | Full backend through gateway | ✅ | `scripts/smoke-test.sh` — 34/34 checks |
 | 2026-11-26 | Frontend wired to real API, mock data removed, BFF cookie auth | ✅ | tsc + eslint clean, `next build`, scripted journey through the BFF (register, publish, comment, like, bookmark, follow, search, refresh, logout) |
 | 2026-11-26 | Phase 1 complete; k6 baseline recorded (`docs/PERFORMANCE.md`) | ✅ | k6 |
+| 2026-11-26 | Phase 2: indexes (all services), Redis caching (posts, feed, trending, tags, authors, profiles, leaderboard), virtual threads, Hikari | ✅ | EXPLAIN, Testcontainers Redis test, smoke test 34/34 |
+| 2026-11-26 | Phase 2: k6 before/after (`docs/PERFORMANCE.md`): baseline saturates at 1000 req/s (p95 ~350 ms), optimized p95 < 15 ms | ✅ | k6 |
+| 2026-11-26 | Phase 2: frontend Lighthouse 91-96 perf, 100 a11y/best practices/SEO | ✅ | Lighthouse |
